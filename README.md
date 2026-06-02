@@ -1,4 +1,4 @@
-# Full-Stack-Development-1
+# Module 7 - MERN Stack
 LinkedIn Profile: https://www.linkedin.com/in/omeedkashef/
 
 > Replace "Project Title" with your actual project name

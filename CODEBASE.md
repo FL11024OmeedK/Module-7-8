@@ -1,4 +1,4 @@
-# CODEBASE.md — Employee Records App (MERN Stack)
+# CODEBASE.md — RE Admin — Agent Management App (MERN Stack)
 
 > A learning reference for junior developers. Come back to this document whenever you need a refresher on how this project is structured, why decisions were made, and how the pieces connect.
 
@@ -6,12 +6,12 @@
 
 ## What Does This App Do?
 
-This is a simple **Employee Records Manager**. It lets you:
+This is a MERN admin panel called **RE Admin**. It lets you:
 
-- View a list of employees in a table
-- Create a new employee (name, job position, seniority level)
-- Edit an existing employee's information
-- Delete an employee from the list
+- View a list of agents in a table
+- Create a new agent (first name, last name, email, region, rating, fee)
+- Edit an existing agent's information
+- Delete an agent from the list
 
 That's it. It's intentionally simple — the goal is to learn the full-stack pattern, not to build a complex product.
 
@@ -46,7 +46,7 @@ Module7/
 │   ├── db/
 │   │   └── connection.js    ← Connects to MongoDB Atlas
 │   └── routes/
-│       └── record.js        ← All API endpoints for employee records
+│       └── record.js        ← All API endpoints for agent CRUD
 │
 ├── client/                  ← The frontend (React + Vite)
 │   ├── index.html           ← The single HTML file the browser loads
@@ -59,8 +59,8 @@ Module7/
 │       ├── index.css        ← Imports Tailwind CSS
 │       └── components/
 │           ├── Navbar.jsx   ← Top navigation bar
-│           ├── RecordList.jsx ← Table showing all employees
-│           └── Record.jsx   ← Form for creating or editing an employee
+│           ├── RecordList.jsx ← Table showing all agents
+│           └── Record.jsx   ← Form for creating or editing an agent
 │
 └── CODEBASE.md              ← You are here
 ```
@@ -95,9 +95,9 @@ React is a library for building user interfaces. The key idea is **components** 
 By default, React apps are single-page apps (SPAs). The browser loads one HTML file and never does a full page reload. React Router lets you fake multiple pages by changing what component is displayed based on the URL, without a real navigation.
 
 For example:
-- `http://localhost:5173/` → shows the employee list
+- `http://localhost:5173/` → shows the agent list
 - `http://localhost:5173/create` → shows the create form
-- `http://localhost:5173/edit/abc123` → shows the edit form for that employee
+- `http://localhost:5173/edit/abc123` → shows the edit form for that agent
 
 **Vite**
 Vite is the **build tool and development server**. When you write JSX (React's special syntax), your browser can't understand it directly. Vite transforms your code into plain JavaScript the browser can run. In development mode it also gives you Hot Module Replacement (HMR) — when you save a file, the browser updates instantly without a full reload.
@@ -118,10 +118,10 @@ The server exposes a **REST API** — a standardized way for the frontend to com
 
 | HTTP Method | What it does | Example |
 |-------------|--------------|---------|
-| `GET` | Read data | Fetch all employees |
-| `POST` | Create data | Add a new employee |
-| `PATCH` | Update data | Edit an employee's info |
-| `DELETE` | Remove data | Delete an employee |
+| `GET` | Read data | Fetch all agents |
+| `POST` | Create data | Add a new agent |
+| `PATCH` | Update data | Edit an agent's info |
+| `DELETE` | Remove data | Delete an agent |
 
 This is called **CRUD** — Create, Read, Update, Delete. Almost every data-driven app you build will follow this pattern.
 
@@ -153,7 +153,7 @@ const [records, setRecords] = useState([]);
 //     ^data     ^function to update data   ^initial value
 ```
 
-In `RecordList.jsx`, `records` holds the array of employees. When the component loads, it fetches employees from the API and calls `setRecords(data)`, which triggers a re-render that displays them in the table.
+In `RecordList.jsx`, `records` holds the array of employees. When the component loads, it fetches agents from the API and calls `setRecords(data)`, which triggers a re-render that displays them in the table.
 
 ### 5. The `useEffect` Hook
 
@@ -162,7 +162,7 @@ In `RecordList.jsx`, `records` holds the array of employees. When the component 
 ```js
 useEffect(() => {
   // This runs after the component renders
-  fetchEmployees();
+  fetchAgents();
 }, [records.length]); // Only re-run if records.length changes
 ```
 
@@ -205,7 +205,7 @@ This pattern keeps your layout consistent across pages without repeating the Nav
 
 ### 9. One Component, Two Purposes (Record.jsx)
 
-`Record.jsx` handles both *creating* and *editing* an employee. It knows which mode it's in by checking whether a URL parameter exists:
+`Record.jsx` handles both *creating* and *editing* an agent. It knows which mode it's in by checking whether a URL parameter exists:
 
 ```js
 const [isNew, setIsNew] = useState(true); // default: create mode
@@ -252,7 +252,7 @@ Then open `http://localhost:5173` in your browser. The React app will communicat
 
 ## Data Flow: End-to-End Example
 
-Here's what happens when a user creates a new employee:
+Here's what happens when a user creates a new agent:
 
 1. User fills out the form in `Record.jsx` and clicks "Save"
 2. `onSubmit()` is called — it sends a `POST` request to `http://localhost:5050/record` with the form data as JSON
@@ -262,14 +262,14 @@ Here's what happens when a user creates a new employee:
 6. MongoDB stores the document and returns a result (including the new `_id`)
 7. Express sends the result back to the frontend as JSON
 8. `Record.jsx` receives the response, clears the form, and calls `navigate("/")` to go back to the list
-9. `RecordList.jsx` loads and fetches the full list — the new employee now appears in the table
+9. `RecordList.jsx` loads and fetches the full list — the new agent now appears in the table
 
 ---
 
 ## Things to Know for Future Development
 
 - **`ModifyRecord.jsx`** exists in the components folder but is empty. It was likely intended for a refactor that wasn't completed.
-- **`App.css`** contains leftover CSS from the Vite starter template. It's imported in `App.jsx` but doesn't affect the employee record UI, which uses Tailwind exclusively. It can be cleaned up later.
+- **`App.css`** contains leftover CSS from the Vite starter template. It's imported in `App.jsx` but doesn't affect the agent record UI, which uses Tailwind exclusively. It can be cleaned up later.
 - The `fetch()` URL is hardcoded as `http://localhost:5050`. In a real production app, this would be an environment variable so it can point to a different server in production.
 - The `config.env` file contains real database credentials. It should never be committed to a public repository.
 
