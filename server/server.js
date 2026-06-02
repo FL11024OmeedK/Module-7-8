@@ -1,13 +1,20 @@
 import express from "express";
 import cors from "cors";
+
+// Route files — each file handles a different resource.
 import records from "./routes/record.js";
+import users from "./routes/users.js";
 
 const PORT = process.env.PORT || 5050;
 const app = express();
 
-app.use(cors());
-app.use(express.json());
-app.use("/record", records);
+// Middleware — runs on every request before it reaches a route.
+app.use(cors());        // Allows the React app (port 5173) to call this server (port 5050).
+app.use(express.json()); // Parses JSON request bodies so req.body works.
+
+// Routes — each path is handled by its own router file.
+app.use("/record", records); // Agent CRUD endpoints.
+app.use("/users", users);    // User login endpoint.
 
 // start the Express server
 app.listen(PORT, () => {

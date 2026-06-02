@@ -1,0 +1,217 @@
+{
+  "_comment": "RE Admin API — Postman Collection. Import this file into Postman via File > Import. Run POST /record first so agentId is captured automatically for all ID-based requests.",
+
+  "info": {
+    "name": "Module 7 — RE Admin API",
+    "description": "All endpoints for the RE Admin MERN application. Base URL: http://localhost:5050. Make sure the backend server is running before sending any requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+
+  "_comment_variables": "Collection variables are shared across all requests. Update userEmail and userPassword to match the user you inserted in MongoDB Atlas. agentId is set automatically after POST /record runs.",
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5050",
+      "_comment": "Base URL of the Express backend. Change this if the server runs on a different port."
+    },
+    {
+      "key": "agentId",
+      "value": "",
+      "_comment": "Automatically populated by the POST /record test script. No need to set this manually."
+    },
+    {
+      "key": "userEmail",
+      "value": "omeedkashef@gmail.com",
+      "_comment": "Update this to match the email of the user document you inserted in MongoDB Atlas."
+    },
+    {
+      "key": "userPassword",
+      "value": "yourpassword",
+      "_comment": "Update this to match the password of the user document you inserted in MongoDB Atlas."
+    }
+  ],
+
+  "item": [
+    {
+      "_comment": "Authentication folder — contains the login endpoint and two failure scenarios.",
+      "name": "Authentication",
+      "description": "POST /users/login validates email and password against the users MongoDB database. Returns 200 on success, 401 on failure.",
+      "item": [
+        {
+          "_comment": "Happy path — correct credentials. Expects 200 and a success message.",
+          "name": "POST /users/login — Success",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "login"]
+            },
+            "description": "Logs in with valid credentials using the userEmail and userPassword collection variables. Expected response: 200 with { message: 'Login successful' }."
+          }
+        },
+        {
+          "_comment": "Failure scenario 1 — email does not exist in the users collection. Expects 401.",
+          "name": "POST /users/login — Wrong Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"unknown@example.com\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "login"]
+            },
+            "description": "Attempts login with an email that does not exist in the database. Expected response: 401 Unauthorized: email not found."
+          }
+        },
+        {
+          "_comment": "Failure scenario 2 — email exists but password is wrong. Expects 401.",
+          "name": "POST /users/login — Wrong Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"wrongpassword\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "login"]
+            },
+            "description": "Attempts login with a correct email but incorrect password. Expected response: 401 Unauthorized: incorrect password."
+          }
+        }
+      ]
+    },
+    {
+      "_comment": "Agents folder — full CRUD. Run POST /record first. The test script captures the insertedId and stores it in {{agentId}} automatically.",
+      "name": "Agents",
+      "description": "Full CRUD operations for agent records. Run POST /record — Create Agent first. The agentId variable is set automatically so GET by ID, PATCH, and DELETE require no manual setup.",
+      "item": [
+        {
+          "_comment": "CREATE — inserts a new agent into MongoDB. The test script below automatically saves the insertedId to the agentId collection variable.",
+          "name": "POST /record — Create Agent",
+          "event": [
+            {
+              "listen": "test",
+              "_comment": "This script runs after the response is received. It extracts the insertedId from the response and saves it as the agentId collection variable so all other ID-based requests work automatically.",
+              "script": {
+                "exec": [
+                  "// Parse the response body as JSON.",
+                  "const response = pm.response.json();",
+                  "",
+                  "// If the insert was successful, MongoDB returns an insertedId.",
+                  "// Save it as a collection variable so GET, PATCH, and DELETE can use it.",
+                  "if (response.insertedId) {",
+                  "    pm.collectionVariables.set('agentId', response.insertedId);",
+                  "    console.log('agentId automatically set to:', response.insertedId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Orlando\",\n  \"last_name\": \"Perez\",\n  \"email\": \"perez@rocket.elv\",\n  \"region\": \"North\",\n  \"rating\": 95,\n  \"fee\": 10000\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/record",
+              "host": ["{{baseUrl}}"],
+              "path": ["record"]
+            },
+            "description": "Creates a new agent. Do not include sales — the backend sets it to 0 automatically. After this request, agentId is set automatically for all subsequent requests."
+          }
+        },
+        {
+          "_comment": "READ ALL — returns every agent document in the agents collection.",
+          "name": "GET /record — Get All Agents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/record",
+              "host": ["{{baseUrl}}"],
+              "path": ["record"]
+            },
+            "description": "Returns all agent documents from the agents database. Returns an empty array if no agents exist yet."
+          }
+        },
+        {
+          "_comment": "READ ONE — returns a single agent using the agentId variable set by POST /record.",
+          "name": "GET /record/:id — Get Agent by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/record/{{agentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["record", "{{agentId}}"]
+            },
+            "description": "Returns a single agent by MongoDB _id. Uses {{agentId}} which is set automatically after running POST /record."
+          }
+        },
+        {
+          "_comment": "UPDATE — modifies an existing agent using the agentId variable. Note: sales is excluded intentionally.",
+          "name": "PATCH /record/:id — Update Agent",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Orlando\",\n  \"last_name\": \"Perez\",\n  \"email\": \"perez@rocket.elv\",\n  \"region\": \"South\",\n  \"rating\": 98,\n  \"fee\": 12000\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/record/{{agentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["record", "{{agentId}}"]
+            },
+            "description": "Updates an existing agent by MongoDB _id. Uses {{agentId}} set automatically after POST /record. The sales field cannot be updated through this endpoint — it is excluded by the backend schema."
+          }
+        },
+        {
+          "_comment": "DELETE — permanently removes an agent using the agentId variable. Cannot be undone.",
+          "name": "DELETE /record/:id — Delete Agent",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/record/{{agentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["record", "{{agentId}}"]
+            },
+            "description": "Permanently deletes an agent by MongoDB _id. Uses {{agentId}} set automatically after POST /record. This action cannot be undone."
+          }
+        }
+      ]
+    }
+  ]
+}
