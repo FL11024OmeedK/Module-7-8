@@ -7,7 +7,7 @@
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
 
-  "_comment_variables": "Collection variables are shared across all requests. Update userEmail and userPassword to match the user you inserted in MongoDB Atlas. agentId is set automatically after POST /record runs.",
+  "_comment_variables": "Collection variables shared across all requests. Update userEmail and userPassword to match the user you inserted in MongoDB Atlas. agentId is set automatically after POST /record runs.",
   "variable": [
     {
       "key": "baseUrl",
@@ -33,18 +33,36 @@
 
   "item": [
     {
-      "_comment": "Authentication folder — contains the login endpoint and two failure scenarios.",
+      "_comment": "Authentication folder — login endpoint with success and failure scenarios.",
       "name": "Authentication",
       "description": "POST /users/login validates email and password against the users MongoDB database. Returns 200 on success, 401 on failure.",
       "item": [
         {
-          "_comment": "Happy path — correct credentials. Expects 200 and a success message.",
+          "_comment": "Happy path — correct credentials. Asserts 200 and success message in response body.",
           "name": "POST /users/login — Success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Assert the response status is 200.",
+                  "pm.test('Status is 200 Login successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// Assert the response body contains a success message.",
+                  "pm.test('Response contains success message', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.message).to.eql('Login successful');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
@@ -55,17 +73,29 @@
               "host": ["{{baseUrl}}"],
               "path": ["users", "login"]
             },
-            "description": "Logs in with valid credentials using the userEmail and userPassword collection variables. Expected response: 200 with { message: 'Login successful' }."
+            "description": "Logs in with valid credentials. Expected response: 200 with { message: 'Login successful' }."
           }
         },
         {
-          "_comment": "Failure scenario 1 — email does not exist in the users collection. Expects 401.",
+          "_comment": "Failure scenario 1 — unrecognized email. Asserts 401.",
           "name": "POST /users/login — Wrong Email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Assert the response status is 401 — email not found.",
+                  "pm.test('Status is 401 Unauthorized for unknown email', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"unknown@example.com\",\n  \"password\": \"{{userPassword}}\"\n}",
@@ -76,17 +106,29 @@
               "host": ["{{baseUrl}}"],
               "path": ["users", "login"]
             },
-            "description": "Attempts login with an email that does not exist in the database. Expected response: 401 Unauthorized: email not found."
+            "description": "Attempts login with an email that does not exist. Expected response: 401 Unauthorized: email not found."
           }
         },
         {
-          "_comment": "Failure scenario 2 — email exists but password is wrong. Expects 401.",
+          "_comment": "Failure scenario 2 — correct email, wrong password. Asserts 401.",
           "name": "POST /users/login — Wrong Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Assert the response status is 401 — incorrect password.",
+                  "pm.test('Status is 401 Unauthorized for wrong password', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"wrongpassword\"\n}",
@@ -97,30 +139,38 @@
               "host": ["{{baseUrl}}"],
               "path": ["users", "login"]
             },
-            "description": "Attempts login with a correct email but incorrect password. Expected response: 401 Unauthorized: incorrect password."
+            "description": "Attempts login with correct email but wrong password. Expected response: 401 Unauthorized: incorrect password."
           }
         }
       ]
     },
     {
-      "_comment": "Agents folder — full CRUD. Run POST /record first. The test script captures the insertedId and stores it in {{agentId}} automatically.",
+      "_comment": "Agents folder — full CRUD. Run POST /record first. The test script captures insertedId into {{agentId}} automatically.",
       "name": "Agents",
-      "description": "Full CRUD operations for agent records. Run POST /record — Create Agent first. The agentId variable is set automatically so GET by ID, PATCH, and DELETE require no manual setup.",
+      "description": "Full CRUD operations for agent records. Run POST /record — Create Agent first. The agentId variable is set automatically so all subsequent requests require no manual setup.",
       "item": [
         {
-          "_comment": "CREATE — inserts a new agent into MongoDB. The test script below automatically saves the insertedId to the agentId collection variable.",
+          "_comment": "CREATE — inserts a new agent. Asserts 201, verifies insertedId exists, then saves it as {{agentId}} for all other requests.",
           "name": "POST /record — Create Agent",
           "event": [
             {
               "listen": "test",
-              "_comment": "This script runs after the response is received. It extracts the insertedId from the response and saves it as the agentId collection variable so all other ID-based requests work automatically.",
               "script": {
                 "exec": [
-                  "// Parse the response body as JSON.",
-                  "const response = pm.response.json();",
+                  "// Assert the response status is 201 Created.",
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
                   "",
-                  "// If the insert was successful, MongoDB returns an insertedId.",
-                  "// Save it as a collection variable so GET, PATCH, and DELETE can use it.",
+                  "// Assert the response contains an insertedId (MongoDB ObjectId).",
+                  "pm.test('Response contains insertedId', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.insertedId).to.be.a('string');",
+                  "});",
+                  "",
+                  "// Save the insertedId as a collection variable so GET, PATCH, and DELETE",
+                  "// can use it automatically — no copy-pasting required.",
+                  "const response = pm.response.json();",
                   "if (response.insertedId) {",
                   "    pm.collectionVariables.set('agentId', response.insertedId);",
                   "    console.log('agentId automatically set to:', response.insertedId);",
@@ -132,9 +182,7 @@
           ],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"first_name\": \"Orlando\",\n  \"last_name\": \"Perez\",\n  \"email\": \"perez@rocket.elv\",\n  \"region\": \"North\",\n  \"rating\": 95,\n  \"fee\": 10000\n}",
@@ -145,12 +193,32 @@
               "host": ["{{baseUrl}}"],
               "path": ["record"]
             },
-            "description": "Creates a new agent. Do not include sales — the backend sets it to 0 automatically. After this request, agentId is set automatically for all subsequent requests."
+            "description": "Creates a new agent. sales is set to 0 automatically by the backend. After this request runs, agentId is set automatically for GET, PATCH, and DELETE."
           }
         },
         {
-          "_comment": "READ ALL — returns every agent document in the agents collection.",
+          "_comment": "READ ALL — returns every agent. Asserts 200 and that the response is an array.",
           "name": "GET /record — Get All Agents",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Assert the response status is 200 OK.",
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// Assert the response is an array (even if empty).",
+                  "pm.test('Response is an array', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -159,12 +227,38 @@
               "host": ["{{baseUrl}}"],
               "path": ["record"]
             },
-            "description": "Returns all agent documents from the agents database. Returns an empty array if no agents exist yet."
+            "description": "Returns all agent documents from the agents database."
           }
         },
         {
-          "_comment": "READ ONE — returns a single agent using the agentId variable set by POST /record.",
+          "_comment": "READ ONE — returns a single agent by ID. Asserts 200 and that all agent fields are present.",
           "name": "GET /record/:id — Get Agent by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Assert the response status is 200 OK.",
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// Assert the response contains all expected agent fields.",
+                  "pm.test('Response contains all agent fields', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('first_name');",
+                  "    pm.expect(body).to.have.property('last_name');",
+                  "    pm.expect(body).to.have.property('email');",
+                  "    pm.expect(body).to.have.property('region');",
+                  "    pm.expect(body).to.have.property('rating');",
+                  "    pm.expect(body).to.have.property('fee');",
+                  "    pm.expect(body).to.have.property('sales');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -173,17 +267,35 @@
               "host": ["{{baseUrl}}"],
               "path": ["record", "{{agentId}}"]
             },
-            "description": "Returns a single agent by MongoDB _id. Uses {{agentId}} which is set automatically after running POST /record."
+            "description": "Returns a single agent by MongoDB _id. Uses {{agentId}} set automatically after POST /record."
           }
         },
         {
-          "_comment": "UPDATE — modifies an existing agent using the agentId variable. Note: sales is excluded intentionally.",
+          "_comment": "UPDATE — modifies an existing agent. Asserts 200 and that modifiedCount is 1.",
           "name": "PATCH /record/:id — Update Agent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Assert the response status is 200 OK.",
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// Assert that exactly one document was modified.",
+                  "pm.test('One agent was modified', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.modifiedCount).to.eql(1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "PATCH",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"first_name\": \"Orlando\",\n  \"last_name\": \"Perez\",\n  \"email\": \"perez@rocket.elv\",\n  \"region\": \"South\",\n  \"rating\": 98,\n  \"fee\": 12000\n}",
@@ -194,12 +306,32 @@
               "host": ["{{baseUrl}}"],
               "path": ["record", "{{agentId}}"]
             },
-            "description": "Updates an existing agent by MongoDB _id. Uses {{agentId}} set automatically after POST /record. The sales field cannot be updated through this endpoint — it is excluded by the backend schema."
+            "description": "Updates an existing agent. Uses {{agentId}} set automatically after POST /record. The sales field cannot be updated through this endpoint."
           }
         },
         {
-          "_comment": "DELETE — permanently removes an agent using the agentId variable. Cannot be undone.",
+          "_comment": "DELETE — permanently removes an agent. Asserts 200 and that deletedCount is 1.",
           "name": "DELETE /record/:id — Delete Agent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Assert the response status is 200 OK.",
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// Assert that exactly one document was deleted.",
+                  "pm.test('One agent was deleted', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.deletedCount).to.eql(1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "DELETE",
             "header": [],
@@ -208,7 +340,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["record", "{{agentId}}"]
             },
-            "description": "Permanently deletes an agent by MongoDB _id. Uses {{agentId}} set automatically after POST /record. This action cannot be undone."
+            "description": "Permanently deletes an agent. Uses {{agentId}} set automatically after POST /record."
           }
         }
       ]
