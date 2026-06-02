@@ -1,0 +1,12 @@
+# Environment variables — never commit these, they contain secrets
+server/config.env
+
+# Node dependencies — reinstalled via npm install
+node_modules/
+
+# Vite build output
+client/dist/
+
+# OS files
+.DS_Store
+Thumbs.db
