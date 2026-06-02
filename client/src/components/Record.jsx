@@ -3,9 +3,12 @@ import { useParams, useNavigate } from "react-router-dom";
 
 export default function Record() {
   const [form, setForm] = useState({
-    name: "",
-    position: "",
-    level: "",
+    first_name: "",
+    last_name: "",
+    email: "",
+    region: "",
+    rating: "",
+    fee: "",
   });
   const [isNew, setIsNew] = useState(true);
   const params = useParams();
@@ -75,7 +78,7 @@ export default function Record() {
     } catch (error) {
       console.error('A problem occurred with your fetch operation: ', error);
     } finally {
-      setForm({ name: "", position: "", level: "" });
+      setForm({ first_name: "", last_name: "", email: "", region: "", rating: "", fee: "" });
       navigate("/");
     }
   }
@@ -101,100 +104,112 @@ export default function Record() {
 
           <div className="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 ">
             <div className="sm:col-span-4">
-              <label
-                htmlFor="name"
-                className="block text-sm font-medium leading-6 text-slate-900"
-              >
-                Name
+              <label htmlFor="first_name" className="block text-sm font-medium leading-6 text-slate-900">
+                First Name
               </label>
               <div className="mt-2">
                 <div className="flex rounded-md shadow-sm ring-1 ring-inset ring-slate-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600 sm:max-w-md">
                   <input
                     type="text"
-                    name="name"
-                    id="name"
+                    name="first_name"
+                    id="first_name"
                     className="block flex-1 border-0 bg-transparent py-1.5 pl-1 text-slate-900 placeholder:text-slate-400 focus:ring-0 sm:text-sm sm:leading-6"
-                    placeholder="First Last"
-                    value={form.name}
-                    onChange={(e) => updateForm({ name: e.target.value })}
+                    placeholder="First name"
+                    value={form.first_name}
+                    onChange={(e) => updateForm({ first_name: e.target.value })}
                   />
                 </div>
               </div>
             </div>
             <div className="sm:col-span-4">
-              <label
-                htmlFor="position"
-                className="block text-sm font-medium leading-6 text-slate-900"
-              >
-                Position
+              <label htmlFor="last_name" className="block text-sm font-medium leading-6 text-slate-900">
+                Last Name
               </label>
               <div className="mt-2">
                 <div className="flex rounded-md shadow-sm ring-1 ring-inset ring-slate-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600 sm:max-w-md">
                   <input
                     type="text"
-                    name="position"
-                    id="position"
+                    name="last_name"
+                    id="last_name"
                     className="block flex-1 border-0 bg-transparent py-1.5 pl-1 text-slate-900 placeholder:text-slate-400 focus:ring-0 sm:text-sm sm:leading-6"
-                    placeholder="Developer Advocate"
-                    value={form.position}
-                    onChange={(e) => updateForm({ position: e.target.value })}
+                    placeholder="Last name"
+                    value={form.last_name}
+                    onChange={(e) => updateForm({ last_name: e.target.value })}
                   />
                 </div>
               </div>
             </div>
-            <div>
-              <fieldset className="mt-4">
-                <legend className="sr-only">Position Options</legend>
-                <div className="space-y-4 sm:flex sm:items-center sm:space-x-10 sm:space-y-0">
-                  <div className="flex items-center">
-                    <input
-                      id="positionIntern"
-                      name="positionOptions"
-                      type="radio"
-                      value="Intern"
-                      className="h-4 w-4 border-slate-300 text-slate-600 focus:ring-slate-600 cursor-pointer"
-                      checked={form.level === "Intern"}
-                      onChange={(e) => updateForm({ level: e.target.value })}
-                    />
-                    <label
-                      htmlFor="positionIntern"
-                      className="ml-3 block text-sm font-medium leading-6 text-slate-900 mr-4"
-                    >
-                      Intern
-                    </label>
-                    <input
-                      id="positionJunior"
-                      name="positionOptions"
-                      type="radio"
-                      value="Junior"
-                      className="h-4 w-4 border-slate-300 text-slate-600 focus:ring-slate-600 cursor-pointer"
-                      checked={form.level === "Junior"}
-                      onChange={(e) => updateForm({ level: e.target.value })}
-                    />
-                    <label
-                      htmlFor="positionJunior"
-                      className="ml-3 block text-sm font-medium leading-6 text-slate-900 mr-4"
-                    >
-                      Junior
-                    </label>
-                    <input
-                      id="positionSenior"
-                      name="positionOptions"
-                      type="radio"
-                      value="Senior"
-                      className="h-4 w-4 border-slate-300 text-slate-600 focus:ring-slate-600 cursor-pointer"
-                      checked={form.level === "Senior"}
-                      onChange={(e) => updateForm({ level: e.target.value })}
-                    />
-                    <label
-                      htmlFor="positionSenior"
-                      className="ml-3 block text-sm font-medium leading-6 text-slate-900 mr-4"
-                    >
-                      Senior
-                    </label>
-                  </div>
+            <div className="sm:col-span-4">
+              <label htmlFor="email" className="block text-sm font-medium leading-6 text-slate-900">
+                Email
+              </label>
+              <div className="mt-2">
+                <div className="flex rounded-md shadow-sm ring-1 ring-inset ring-slate-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600 sm:max-w-md">
+                  <input
+                    type="text"
+                    name="email"
+                    id="email"
+                    className="block flex-1 border-0 bg-transparent py-1.5 pl-1 text-slate-900 placeholder:text-slate-400 focus:ring-0 sm:text-sm sm:leading-6"
+                    placeholder="agent@rocket.elv"
+                    value={form.email}
+                    onChange={(e) => updateForm({ email: e.target.value })}
+                  />
                 </div>
-              </fieldset>
+              </div>
+            </div>
+            <div className="sm:col-span-4">
+              <label htmlFor="region" className="block text-sm font-medium leading-6 text-slate-900">
+                Region
+              </label>
+              <div className="mt-2">
+                <div className="flex rounded-md shadow-sm ring-1 ring-inset ring-slate-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600 sm:max-w-md">
+                  <input
+                    type="text"
+                    name="region"
+                    id="region"
+                    className="block flex-1 border-0 bg-transparent py-1.5 pl-1 text-slate-900 placeholder:text-slate-400 focus:ring-0 sm:text-sm sm:leading-6"
+                    placeholder="North"
+                    value={form.region}
+                    onChange={(e) => updateForm({ region: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="sm:col-span-4">
+              <label htmlFor="rating" className="block text-sm font-medium leading-6 text-slate-900">
+                Rating
+              </label>
+              <div className="mt-2">
+                <div className="flex rounded-md shadow-sm ring-1 ring-inset ring-slate-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600 sm:max-w-md">
+                  <input
+                    type="number"
+                    name="rating"
+                    id="rating"
+                    className="block flex-1 border-0 bg-transparent py-1.5 pl-1 text-slate-900 placeholder:text-slate-400 focus:ring-0 sm:text-sm sm:leading-6"
+                    placeholder="0"
+                    value={form.rating}
+                    onChange={(e) => updateForm({ rating: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="sm:col-span-4">
+              <label htmlFor="fee" className="block text-sm font-medium leading-6 text-slate-900">
+                Fee
+              </label>
+              <div className="mt-2">
+                <div className="flex rounded-md shadow-sm ring-1 ring-inset ring-slate-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600 sm:max-w-md">
+                  <input
+                    type="number"
+                    name="fee"
+                    id="fee"
+                    className="block flex-1 border-0 bg-transparent py-1.5 pl-1 text-slate-900 placeholder:text-slate-400 focus:ring-0 sm:text-sm sm:leading-6"
+                    placeholder="0"
+                    value={form.fee}
+                    onChange={(e) => updateForm({ fee: e.target.value })}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
