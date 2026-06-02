@@ -21,6 +21,8 @@ try {
   console.error(err);
 }
 
-let db = client.db("employees");
+// agents database — stores real estate agent documents
+export const agentsDb = client.db("agents");
 
-export default db;
+// users database — stores Rocket Elevators staff login accounts
+export const usersDb = client.db("users");
