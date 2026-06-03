@@ -15,7 +15,7 @@ export default function Login() {
   const navigate = useNavigate();
 
   // updateForm merges a partial update into the form state.
-  // Same pattern used in Record.jsx — keeps all fields in one state object.
+  // Same pattern used in AgentForm.jsx — keeps all fields in one state object.
   function updateForm(value) {
     return setForm((prev) => ({ ...prev, ...value }));
   }

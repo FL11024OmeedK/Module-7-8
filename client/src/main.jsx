@@ -16,8 +16,8 @@ import {
   RouterProvider,
 } from "react-router-dom";
 import App from "./App";
-import Record from "./components/Record";
-import RecordList from "./components/RecordList";
+import AgentForm from "./components/AgentForm";
+import AgentList from "./components/AgentList";
 import Login from "./components/Login";
 import Unauthorized from "./components/Unauthorized";
 import "./index.css";
@@ -32,9 +32,9 @@ const router = createBrowserRouter([
     path: "/",
     element: <App />,
     children: [
-      { index: true, element: <RecordList /> },
-      { path: "create", element: <Record /> },
-      { path: "edit/:id", element: <Record /> },
+      { index: true, element: <AgentList /> },
+      { path: "create", element: <AgentForm /> },
+      { path: "edit/:id", element: <AgentForm /> },
     ],
   },
 ]);

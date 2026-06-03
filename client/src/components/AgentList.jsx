@@ -5,25 +5,25 @@ import { Link } from "react-router-dom";
 const AgentRow = (props) => (
   <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
     <td className="p-4 align-middle [&:has([role=checkbox])]:pr-0">
-      {props.record.first_name} {props.record.last_name}
+      {props.agent.first_name} {props.agent.last_name}
     </td>
     <td className="p-4 align-middle [&:has([role=checkbox])]:pr-0">
-      {props.record.region}
+      {props.agent.region}
     </td>
     <td className="p-4 align-middle [&:has([role=checkbox])]:pr-0">
-      {props.record.rating}
+      {props.agent.rating}
     </td>
     <td className="p-4 align-middle [&:has([role=checkbox])]:pr-0">
-      {props.record.fee}
+      {props.agent.fee}
     </td>
     <td className="p-4 align-middle [&:has([role=checkbox])]:pr-0">
-      {props.record.sales}
+      {props.agent.sales}
     </td>
     <td className="p-4 align-middle [&:has([role=checkbox])]:pr-0">
       <div className="flex gap-2">
         <Link
           className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-slate-100 h-9 rounded-md px-3"
-          to={`/edit/${props.record._id}`}
+          to={`/edit/${props.agent._id}`}
         >
           Edit
         </Link>
@@ -32,7 +32,7 @@ const AgentRow = (props) => (
           color="red"
           type="button"
           onClick={() => {
-            props.deleteRecord(props.record._id);
+            props.deleteAgent(props.agent._id);
           }}
         >
           Delete
@@ -42,48 +42,48 @@ const AgentRow = (props) => (
   </tr>
 );
 
-export default function RecordList() {
-  const [records, setRecords] = useState([]);
+export default function AgentList() {
+  const [agents, setAgents] = useState([]);
 
-  // This method fetches the records from the database.
+  // This method fetches the agents from the database.
   useEffect(() => {
-    async function getRecords() {
-      const response = await fetch(`http://localhost:5050/record/`);
+    async function getAgents() {
+      const response = await fetch(`http://localhost:5050/agents/`);
       if (!response.ok) {
         const message = `An error occurred: ${response.statusText}`;
         console.error(message);
         return;
       }
-      const records = await response.json();
-      setRecords(records);
+      const agents = await response.json();
+      setAgents(agents);
     }
-    getRecords();
+    getAgents();
     return;
-  }, [records.length]);
+  }, [agents.length]);
 
-  // This method will delete a record
-  async function deleteRecord(id) {
-    await fetch(`http://localhost:5050/record/${id}`, {
+  // This method will delete an agent
+  async function deleteAgent(id) {
+    await fetch(`http://localhost:5050/agents/${id}`, {
       method: "DELETE",
     });
-    const newRecords = records.filter((el) => el._id !== id);
-    setRecords(newRecords);
+    const updatedAgents = agents.filter((el) => el._id !== id);
+    setAgents(updatedAgents);
   }
 
-  // This method will map out the records on the table
-  function recordList() {
-    return records.map((record) => {
+  // This method will map out the agents on the table
+  function agentList() {
+    return agents.map((agent) => {
       return (
         <AgentRow
-          record={record}
-          deleteRecord={() => deleteRecord(record._id)}
-          key={record._id}
+          agent={agent}
+          deleteAgent={() => deleteAgent(agent._id)}
+          key={agent._id}
         />
       );
     });
   }
 
-  // This following section will display the table with the records of individuals.
+  // This following section will display the table with the agents.
   return (
     <>
       <h3 className="text-lg font-semibold p-4">Agent Records</h3>
@@ -113,7 +113,7 @@ export default function RecordList() {
               </tr>
             </thead>
             <tbody className="[&_tr:last-child]:border-0">
-              {recordList()}
+              {agentList()}
             </tbody>
           </table>
         </div>
