@@ -9,8 +9,9 @@ export default function Navbar() {
   // useNavigate allows the Logout button to redirect programmatically.
   const navigate = useNavigate();
 
-  // logout navigates the user back to the login page.
+  // logout clears the JWT from localStorage and returns the user to the login page.
   function logout() {
+    localStorage.removeItem("token");
     navigate("/login");
   }
 

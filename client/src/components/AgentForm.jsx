@@ -33,7 +33,8 @@ export default function AgentForm() {
       setIsNew(false);
       // fetch is a built-in browser function for making HTTP requests.
       const response = await fetch(
-        `http://localhost:5050/agents/${params.id.toString()}`
+        `http://localhost:5050/agents/${params.id.toString()}`,
+        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
       if (!response.ok) {
         const message = `An error has occurred: ${response.statusText}`;
@@ -73,6 +74,7 @@ export default function AgentForm() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
           // JSON.stringify converts a JavaScript object into JSON text for the server.
           body: JSON.stringify(person),
@@ -83,6 +85,7 @@ export default function AgentForm() {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
           // JSON.stringify converts a JavaScript object into JSON text for the server.
           body: JSON.stringify(person),

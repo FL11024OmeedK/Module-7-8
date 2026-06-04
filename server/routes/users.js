@@ -4,36 +4,37 @@
 // This router is registered in server.js at the /users path.
 
 import express from "express";
-
-// Import the users database connection.
-// usersDb points to the separate "users" MongoDB database.
+import jwt from "jsonwebtoken";
 import { usersDb } from "../db/connection.js";
 
 const router = express.Router();
 
 // POST /users/login
 // Receives { email, password } in the request body.
-// Looks up the user by email in the users database.
-// Returns 200 if credentials match, 401 if they do not.
+// Returns a signed JWT on success, 401 on bad credentials.
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Step 1: Find a user document with a matching email.
     const user = await usersDb.collection("users").findOne({ email });
 
-    // Step 2: If no user with that email exists, reject the login.
     if (!user) {
       return res.status(401).send("Unauthorized: email not found");
     }
 
-    // Step 3: If the email exists but the password does not match, reject.
     if (user.password !== password) {
       return res.status(401).send("Unauthorized: incorrect password");
     }
 
-    // Step 4: Credentials are valid — login successful.
-    res.status(200).send({ message: "Login successful" });
+    // Sign a JWT containing the user's id and email.
+    // The token expires in 24 hours — after that the user must log in again.
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" }
+    );
+
+    res.status(200).json({ token });
 
   } catch (err) {
     res.status(500).send("Error during login");

@@ -211,6 +211,9 @@ All environment variables are stored in `server/config.env`. This file is **not 
 |----------|-------------|---------|
 | `ATLAS_URI` | MongoDB Atlas connection string | `mongodb+srv://user:pass@cluster.mongodb.net/` |
 | `PORT` | Port the Express server listens on | `5050` |
+| `JWT_SECRET` | Secret key used to sign and verify JWT tokens | `some-long-random-string` |
+
+> **Note:** Change `JWT_SECRET` to a long, random string in any real deployment. Anyone who knows this value can forge valid tokens.
 
 ---
 
@@ -226,7 +229,7 @@ All request and response bodies use JSON. Include `Content-Type: application/jso
 
 #### POST `/users/login`
 
-Validates staff credentials against the `users` MongoDB database.
+Validates staff credentials against the `users` MongoDB database. On success, returns a signed JWT valid for 24 hours. Include this token as `Authorization: Bearer <token>` on all subsequent `/agents` requests.
 
 **Request body:**
 ```json
@@ -240,7 +243,7 @@ Validates staff credentials against the `users` MongoDB database.
 
 | Status | Body |
 |--------|------|
-| `200` | `{ "message": "Login successful" }` |
+| `200` | `{ "token": "<jwt>" }` |
 | `401` | `"Unauthorized: email not found"` |
 | `401` | `"Unauthorized: incorrect password"` |
 | `500` | `"Error during login"` |
@@ -249,7 +252,9 @@ Validates staff credentials against the `users` MongoDB database.
 
 ### Agents
 
-#### GET `/record`
+> All `/agents` endpoints require `Authorization: Bearer <token>` in the request header. Get a token first via `POST /users/login`. Requests without a valid token receive `401 No token provided`.
+
+#### GET `/agents`
 
 Returns all agents stored in MongoDB.
 
@@ -271,19 +276,20 @@ Returns all agents stored in MongoDB.
 
 ---
 
-#### GET `/record/:id`
+#### GET `/agents/:id`
 
 Returns a single agent by MongoDB `_id`.
 
 | Status | Body |
 |--------|------|
 | `200` | Agent document |
+| `401` | `{ "error": "No token provided" }` |
 | `404` | `"Agent not found"` |
 | `500` | `"Error retrieving agent"` |
 
 ---
 
-#### POST `/record`
+#### POST `/agents`
 
 Creates a new agent. `sales` is automatically set to `0` — do not include it in the request.
 
@@ -302,11 +308,12 @@ Creates a new agent. `sales` is automatically set to `0` — do not include it i
 | Status | Body |
 |--------|------|
 | `201` | MongoDB insert result with `insertedId` |
+| `401` | `{ "error": "No token provided" }` |
 | `500` | `"Error adding agent"` |
 
 ---
 
-#### PATCH `/record/:id`
+#### PATCH `/agents/:id`
 
 Updates an existing agent. `sales` cannot be updated through this endpoint.
 
@@ -325,17 +332,19 @@ Updates an existing agent. `sales` cannot be updated through this endpoint.
 | Status | Body |
 |--------|------|
 | `200` | MongoDB update result with `modifiedCount` |
+| `401` | `{ "error": "No token provided" }` |
 | `500` | `"Error updating agent"` |
 
 ---
 
-#### DELETE `/record/:id`
+#### DELETE `/agents/:id`
 
 Permanently deletes an agent by MongoDB `_id`.
 
 | Status | Body |
 |--------|------|
 | `200` | MongoDB delete result with `deletedCount` |
+| `401` | `{ "error": "No token provided" }` |
 | `500` | `"Error deleting agent"` |
 
 ---
