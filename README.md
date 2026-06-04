@@ -52,8 +52,13 @@ Module7/
 │   │       ├── agent.schema.js      ← Agent document shape + createAgent / updateAgent factory functions
 │   │       └── user.schema.js       ← User document shape + createUser factory function
 │   └── routes/
-│       ├── record.js                ← Agent CRUD endpoints (GET, POST, PATCH, DELETE /record)
-│       └── users.js                 ← Login endpoint (POST /users/login)
+│       ├── agents.js                ← Agent CRUD endpoints (GET, POST, PATCH, DELETE /agents)
+│       │                               Note: this file acts as a "fat router" — it combines routing
+│       │                               logic (router.get, router.post, etc.) and controller logic
+│       │                               (the async handler callbacks) in one file. In larger projects
+│       │                               these are split into separate routes/ and controllers/ folders,
+│       │                               but the combined pattern is appropriate at this scale.
+│       └── users.js                 ← Login endpoint (POST /users/login); also a fat router
 │
 ├── client/                          ← React frontend (Vite)
 │   ├── index.html                   ← Single HTML file — app mounts at #root
@@ -165,7 +170,7 @@ The app requires at least one user document to log in. In MongoDB Atlas Data Exp
 From the `server/` directory:
 
 ```bash
-node --env-file=config.env server.js
+npm run dev
 ```
 
 Expected output:

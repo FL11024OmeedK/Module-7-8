@@ -42,6 +42,8 @@ const AgentRow = (props) => (
   </tr>
 );
 
+// AgentList is the main component that fetches agent data, stores it in a variable called agents, and displays it in a table using the AgentRow component for each agent. It is called in the App component, which is the main layout for the app. The AgentList component also has a deleteAgent function that is passed down to each AgentRow component, allowing users to delete agents from the list. The useEffect hook is used to fetch the agent data from the server when the component mounts and whenever the length of the agents array changes, ensuring that the list stays up-to-date with any additions or deletions. Mounting refers to the process of rendering a component for the first time and adding it to the DOM. In this case, when the AgentList component is rendered for the first time, the useEffect hook will run and fetch the agent data from the server, populating the agents state variable with the fetched data. This allows the component to display the list of agents in a table format using the AgentRow component for each agent.
+
 export default function AgentList() {
   const [agents, setAgents] = useState([]);
 
@@ -59,7 +61,7 @@ export default function AgentList() {
     }
     getAgents();
     return;
-  }, [agents.length]);
+  }, [agents.length]); // agents.length is a dependency of the useEffect hook, which means that the effect will run whenever the length of the agents array changes. This is important because we want to refetch the agents from the server whenever we add or delete an agent, which will change the length of the agents array. By including agents.length as a dependency, we ensure that our component stays up-to-date with the latest data from the server without causing an infinite loop of fetches. If we left out agents.length, the effect would only run once when the component mounts, and we would not see updates to the agent list after adding or deleting agents.
 
   // This method will delete an agent
   async function deleteAgent(id) {

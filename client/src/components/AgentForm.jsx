@@ -1,7 +1,14 @@
+// useState and useEffect are built-in React Hooks.
+// useState stores values that can change; useEffect runs code after React renders.
 import { useState, useEffect } from "react";
+// useParams and useNavigate are built-in React Router Hooks.
+// useParams reads URL values like :id; useNavigate sends the user to another route.
 import { useParams, useNavigate } from "react-router-dom";
 
 export default function AgentForm() {
+  // useState returns two things: the current value and a function to update it.
+  // form and setForm are the current state and the function to update it, respectively. form is an object that holds all the input values for the form. We initialize it with empty strings. 
+  //.setForm comes from useState, but it is not a built-in function; we can name it whatever we want. By convention, we use "set" + the name of the state variable, whcih is form.
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
@@ -10,15 +17,21 @@ export default function AgentForm() {
     rating: "",
     fee: "",
   });
+  // isNew tracks whether this form is creating a new agent or editing an existing one. We initialize it to true, assuming that we are creating a new agent until we check the URL parameters. If we find an id in the URL parameters, we will set isNew to false, indicating that we are editing an existing agent. This variable is important because it determines whether we will send a POST request to create a new agent or a PATCH request to update an existing agent when the form is submitted. isNew is a piece of state that we manage within the AgentForm component, and it helps us control the behavior of the form based on whether we are creating a new agent or editing an existing one. Its value is either true or false, and it is updated based on the presence of an id in the URL parameters when the component loads. The presence of an id in the URL is detected using the useParams hook in AgentForm.jsx, which reads the route parameters from the URL. If an id is found, we set isNew to false, indicating that we are editing an existing agent. If no id is found, we keep isNew as true, indicating that we are creating a new agent. This state variable is crucial for determining the correct API endpoint and HTTP method to use when submitting the form data to the server. setIsNew is the function that we use to update the value of isNew. We call setIsNew(false) when we detect that we are editing an existing agent, and we call setIsNew(true) when we are creating a new agent. By managing the isNew state variable, we can ensure that our form behaves correctly for both creating and editing agents, providing a seamless user experience.
   const [isNew, setIsNew] = useState(true);
+  // useParams reads route parameters from the URL, such as /edit/:id.
   const params = useParams();
+  // useNavigate gives us a function that can move the user to another page.
   const navigate = useNavigate();
 
+  // useEffect runs after the component loads and again when params.id or navigate changes.
   useEffect(() => {
     async function fetchData() {
+      // Optional chaining (?.) safely calls toString only if params.id exists.
       const id = params.id?.toString() || undefined;
       if(!id) return;
       setIsNew(false);
+      // fetch is a built-in browser function for making HTTP requests.
       const response = await fetch(
         `http://localhost:5050/agents/${params.id.toString()}`
       );
@@ -33,6 +46,7 @@ export default function AgentForm() {
         navigate("/");
         return;
       }
+      // setForm updates React state, which causes the form inputs to re-render.
       setForm(agent);
     }
     fetchData();
@@ -48,6 +62,7 @@ export default function AgentForm() {
 
   // This function will handle the submission.
   async function onSubmit(e) {
+    // preventDefault stops the browser from refreshing the page on form submit.
     e.preventDefault();
     const person = { ...form };
     try {
@@ -59,6 +74,7 @@ export default function AgentForm() {
           headers: {
             "Content-Type": "application/json",
           },
+          // JSON.stringify converts a JavaScript object into JSON text for the server.
           body: JSON.stringify(person),
         });
       } else {
@@ -68,6 +84,7 @@ export default function AgentForm() {
           headers: {
             "Content-Type": "application/json",
           },
+          // JSON.stringify converts a JavaScript object into JSON text for the server.
           body: JSON.stringify(person),
         });
       }
@@ -162,6 +179,7 @@ export default function AgentForm() {
                 Region
               </label>
               <div className="mt-2 flex gap-6">
+                {/* map loops over the region names and returns one radio button for each. */}
                 {["North", "South", "East", "West"].map((r) => (
                   <label key={r} className="flex items-center gap-2 text-sm text-slate-900 cursor-pointer">
                     <input
