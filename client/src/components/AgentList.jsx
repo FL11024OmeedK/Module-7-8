@@ -46,11 +46,13 @@ const AgentRow = (props) => (
 
 export default function AgentList() {
   const [agents, setAgents] = useState([]);
-
+  console.log(localStorage.getItem("token"));
   // This method fetches the agents from the database.
   useEffect(() => {
     async function getAgents() {
-      const response = await fetch(`http://localhost:5050/agents/`);
+      const response = await fetch(`http://localhost:5050/agents/`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
       if (!response.ok) {
         const message = `An error occurred: ${response.statusText}`;
         console.error(message);
@@ -67,6 +69,7 @@ export default function AgentList() {
   async function deleteAgent(id) {
     await fetch(`http://localhost:5050/agents/${id}`, {
       method: "DELETE",
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     });
     const updatedAgents = agents.filter((el) => el._id !== id);
     setAgents(updatedAgents);

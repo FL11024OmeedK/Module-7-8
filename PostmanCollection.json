@@ -1,13 +1,13 @@
 {
-  "_comment": "RE Admin API — Postman Collection. Import this file into Postman via File > Import. Run POST /record first so agentId is captured automatically for all ID-based requests.",
+  "_comment": "RE Admin API — Postman Collection. Import this file into Postman via File > Import. Run POST /users/login first — it captures the JWT token automatically for all agent requests.",
 
   "info": {
     "name": "Module 7 — RE Admin API",
-    "description": "All endpoints for the RE Admin MERN application. Base URL: http://localhost:5050. Make sure the backend server is running before sending any requests.",
+    "description": "All endpoints for the RE Admin MERN application. Base URL: http://localhost:5050. Run POST /users/login first — the token is captured automatically and sent with all /agents requests.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
 
-  "_comment_variables": "Collection variables shared across all requests. Update userEmail and userPassword to match the user you inserted in MongoDB Atlas. agentId is set automatically after POST /record runs.",
+  "_comment_variables": "Collection variables. Update userEmail and userPassword to match your MongoDB Atlas user. token and agentId are set automatically after login and create requests run.",
   "variable": [
     {
       "key": "baseUrl",
@@ -15,9 +15,14 @@
       "_comment": "Base URL of the Express backend. Change this if the server runs on a different port."
     },
     {
+      "key": "token",
+      "value": "",
+      "_comment": "Automatically populated by POST /users/login. Sent as Authorization: Bearer {{token}} on all /agents requests."
+    },
+    {
       "key": "agentId",
       "value": "",
-      "_comment": "Automatically populated by the POST /record test script. No need to set this manually."
+      "_comment": "Automatically populated by POST /agents. No need to set this manually."
     },
     {
       "key": "userEmail",
@@ -35,10 +40,10 @@
     {
       "_comment": "Authentication folder — login endpoint with success and failure scenarios.",
       "name": "Authentication",
-      "description": "POST /users/login validates email and password against the users MongoDB database. Returns 200 on success, 401 on failure.",
+      "description": "POST /users/login validates email and password against the users MongoDB database. Returns 200 with a JWT token on success, 401 on failure.",
       "item": [
         {
-          "_comment": "Happy path — correct credentials. Asserts 200 and success message in response body.",
+          "_comment": "Happy path — correct credentials. Captures JWT token into {{token}} automatically.",
           "name": "POST /users/login — Success",
           "event": [
             {
@@ -50,11 +55,19 @@
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "// Assert the response body contains a success message.",
-                  "pm.test('Response contains success message', function () {",
+                  "// Assert the response body contains a token string.",
+                  "pm.test('Response contains JWT token', function () {",
                   "    const body = pm.response.json();",
-                  "    pm.expect(body.message).to.eql('Login successful');",
-                  "});"
+                  "    pm.expect(body.token).to.be.a('string');",
+                  "});",
+                  "",
+                  "// Save the token as a collection variable so all agent requests",
+                  "// can use it automatically — no copy-pasting required.",
+                  "const response = pm.response.json();",
+                  "if (response.token) {",
+                  "    pm.collectionVariables.set('token', response.token);",
+                  "    console.log('token captured and saved to collection variable');",
+                  "}"
                 ],
                 "type": "text/javascript"
               }
@@ -73,7 +86,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["users", "login"]
             },
-            "description": "Logs in with valid credentials. Expected response: 200 with { message: 'Login successful' }."
+            "description": "Logs in with valid credentials. Returns 200 with { token: '...' }. The token is saved automatically to {{token}} for use in all agent requests."
           }
         },
         {
@@ -84,7 +97,6 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "// Assert the response status is 401 — email not found.",
                   "pm.test('Status is 401 Unauthorized for unknown email', function () {",
                   "    pm.response.to.have.status(401);",
                   "});"
@@ -117,7 +129,6 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "// Assert the response status is 401 — incorrect password.",
                   "pm.test('Status is 401 Unauthorized for wrong password', function () {",
                   "    pm.response.to.have.status(401);",
                   "});"
@@ -141,35 +152,58 @@
             },
             "description": "Attempts login with correct email but wrong password. Expected response: 401 Unauthorized: incorrect password."
           }
-        }
-      ]
-    },
-    {
-      "_comment": "Agents folder — full CRUD. Run POST /record first. The test script captures insertedId into {{agentId}} automatically.",
-      "name": "Agents",
-      "description": "Full CRUD operations for agent records. Run POST /record — Create Agent first. The agentId variable is set automatically so all subsequent requests require no manual setup.",
-      "item": [
+        },
         {
-          "_comment": "CREATE — inserts a new agent. Asserts 201, verifies insertedId exists, then saves it as {{agentId}} for all other requests.",
-          "name": "POST /record — Create Agent",
+          "_comment": "No token — hits a protected /agents route without Authorization header. Asserts 401.",
+          "name": "GET /agents — No Token (401)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "// Assert the response status is 201 Created.",
+                  "pm.test('Status is 401 when no token is provided', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/agents",
+              "host": ["{{baseUrl}}"],
+              "path": ["agents"]
+            },
+            "description": "Hits GET /agents with no Authorization header. Expected response: 401 No token provided. Confirms that the route is protected."
+          }
+        }
+      ]
+    },
+    {
+      "_comment": "Agents folder — full CRUD. Run POST /users/login first to capture {{token}}. Run POST /agents to capture {{agentId}}.",
+      "name": "Agents",
+      "description": "Full CRUD operations for agent records. All requests require a valid JWT in the Authorization header — run POST /users/login first. Run POST /agents — Create Agent next so agentId is set automatically for GET, PATCH, and DELETE.",
+      "item": [
+        {
+          "_comment": "CREATE — inserts a new agent. Asserts 201, verifies insertedId exists, saves it as {{agentId}}.",
+          "name": "POST /agents — Create Agent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
                   "pm.test('Status is 201 Created', function () {",
                   "    pm.response.to.have.status(201);",
                   "});",
                   "",
-                  "// Assert the response contains an insertedId (MongoDB ObjectId).",
                   "pm.test('Response contains insertedId', function () {",
                   "    const body = pm.response.json();",
                   "    pm.expect(body.insertedId).to.be.a('string');",
                   "});",
                   "",
-                  "// Save the insertedId as a collection variable so GET, PATCH, and DELETE",
-                  "// can use it automatically — no copy-pasting required.",
                   "const response = pm.response.json();",
                   "if (response.insertedId) {",
                   "    pm.collectionVariables.set('agentId', response.insertedId);",
@@ -182,34 +216,35 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"first_name\": \"Orlando\",\n  \"last_name\": \"Perez\",\n  \"email\": \"perez@rocket.elv\",\n  \"region\": \"North\",\n  \"rating\": 95,\n  \"fee\": 10000\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": {
-              "raw": "{{baseUrl}}/record",
+              "raw": "{{baseUrl}}/agents",
               "host": ["{{baseUrl}}"],
-              "path": ["record"]
+              "path": ["agents"]
             },
-            "description": "Creates a new agent. sales is set to 0 automatically by the backend. After this request runs, agentId is set automatically for GET, PATCH, and DELETE."
+            "description": "Creates a new agent. Requires Authorization: Bearer {{token}}. sales is set to 0 automatically by the backend. agentId is saved automatically for subsequent requests."
           }
         },
         {
-          "_comment": "READ ALL — returns every agent. Asserts 200 and that the response is an array.",
-          "name": "GET /record — Get All Agents",
+          "_comment": "READ ALL — returns every agent. Asserts 200 and array response.",
+          "name": "GET /agents — Get All Agents",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "// Assert the response status is 200 OK.",
                   "pm.test('Status is 200 OK', function () {",
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "// Assert the response is an array (even if empty).",
                   "pm.test('Response is an array', function () {",
                   "    const body = pm.response.json();",
                   "    pm.expect(body).to.be.an('array');",
@@ -221,29 +256,29 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
             "url": {
-              "raw": "{{baseUrl}}/record",
+              "raw": "{{baseUrl}}/agents",
               "host": ["{{baseUrl}}"],
-              "path": ["record"]
+              "path": ["agents"]
             },
-            "description": "Returns all agent documents from the agents database."
+            "description": "Returns all agent documents from the agents database. Requires Authorization: Bearer {{token}}."
           }
         },
         {
-          "_comment": "READ ONE — returns a single agent by ID. Asserts 200 and that all agent fields are present.",
-          "name": "GET /record/:id — Get Agent by ID",
+          "_comment": "READ ONE — returns a single agent by ID. Asserts 200 and all agent fields.",
+          "name": "GET /agents/:id — Get Agent by ID",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "// Assert the response status is 200 OK.",
                   "pm.test('Status is 200 OK', function () {",
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "// Assert the response contains all expected agent fields.",
                   "pm.test('Response contains all agent fields', function () {",
                   "    const body = pm.response.json();",
                   "    pm.expect(body).to.have.property('first_name');",
@@ -261,29 +296,29 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
             "url": {
-              "raw": "{{baseUrl}}/record/{{agentId}}",
+              "raw": "{{baseUrl}}/agents/{{agentId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["record", "{{agentId}}"]
+              "path": ["agents", "{{agentId}}"]
             },
-            "description": "Returns a single agent by MongoDB _id. Uses {{agentId}} set automatically after POST /record."
+            "description": "Returns a single agent by MongoDB _id. Requires Authorization: Bearer {{token}}. Uses {{agentId}} set automatically after POST /agents."
           }
         },
         {
-          "_comment": "UPDATE — modifies an existing agent. Asserts 200 and that modifiedCount is 1.",
-          "name": "PATCH /record/:id — Update Agent",
+          "_comment": "UPDATE — modifies an existing agent. Asserts 200 and modifiedCount 1.",
+          "name": "PATCH /agents/:id — Update Agent",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "// Assert the response status is 200 OK.",
                   "pm.test('Status is 200 OK', function () {",
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "// Assert that exactly one document was modified.",
                   "pm.test('One agent was modified', function () {",
                   "    const body = pm.response.json();",
                   "    pm.expect(body.modifiedCount).to.eql(1);",
@@ -295,34 +330,35 @@
           ],
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"first_name\": \"Orlando\",\n  \"last_name\": \"Perez\",\n  \"email\": \"perez@rocket.elv\",\n  \"region\": \"South\",\n  \"rating\": 98,\n  \"fee\": 12000\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": {
-              "raw": "{{baseUrl}}/record/{{agentId}}",
+              "raw": "{{baseUrl}}/agents/{{agentId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["record", "{{agentId}}"]
+              "path": ["agents", "{{agentId}}"]
             },
-            "description": "Updates an existing agent. Uses {{agentId}} set automatically after POST /record. The sales field cannot be updated through this endpoint."
+            "description": "Updates an existing agent. Requires Authorization: Bearer {{token}}. The sales field cannot be updated through this endpoint."
           }
         },
         {
-          "_comment": "DELETE — permanently removes an agent. Asserts 200 and that deletedCount is 1.",
-          "name": "DELETE /record/:id — Delete Agent",
+          "_comment": "DELETE — permanently removes an agent. Asserts 200 and deletedCount 1.",
+          "name": "DELETE /agents/:id — Delete Agent",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "// Assert the response status is 200 OK.",
                   "pm.test('Status is 200 OK', function () {",
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "// Assert that exactly one document was deleted.",
                   "pm.test('One agent was deleted', function () {",
                   "    const body = pm.response.json();",
                   "    pm.expect(body.deletedCount).to.eql(1);",
@@ -334,13 +370,15 @@
           ],
           "request": {
             "method": "DELETE",
-            "header": [],
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
             "url": {
-              "raw": "{{baseUrl}}/record/{{agentId}}",
+              "raw": "{{baseUrl}}/agents/{{agentId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["record", "{{agentId}}"]
+              "path": ["agents", "{{agentId}}"]
             },
-            "description": "Permanently deletes an agent. Uses {{agentId}} set automatically after POST /record."
+            "description": "Permanently deletes an agent. Requires Authorization: Bearer {{token}}. Uses {{agentId}} set automatically after POST /agents."
           }
         }
       ]

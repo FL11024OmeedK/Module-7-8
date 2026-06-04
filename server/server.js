@@ -5,6 +5,7 @@ import cors from "cors";
 // Route files — each file handles a different resource.
 import agents from "./routes/agents.js";
 import users from "./routes/users.js";
+import { requireAuth } from "./middleware/auth.js";
 
 const PORT = process.env.PORT || 5050;
 const app = express();
@@ -14,7 +15,7 @@ app.use(cors());        // Allows the React app (port 5173) to call this server 
 app.use(express.json()); // Parses JSON request bodies so req.body works.
 
 // Routes — each path is handled by its own router file.
-app.use("/agents", agents); // Agent CRUD endpoints.
+app.use("/agents", requireAuth, agents); // Agent CRUD endpoints — protected by JWT.
 app.use("/users", users);    // User login endpoint.
 
 // start the Express server

@@ -32,10 +32,10 @@ export default function Login() {
     });
 
     if (response.ok) {
-      // 200 — credentials are valid, go to the agent list.
+      const { token } = await response.json();
+      localStorage.setItem("token", token);
       navigate("/");
     } else {
-      // 401 — credentials are invalid, go to the unauthorized page.
       navigate("/unauthorized");
     }
   }
