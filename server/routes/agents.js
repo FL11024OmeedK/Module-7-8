@@ -12,7 +12,7 @@ import { createAgent, updateAgent } from "../db/schemas/agent.schema.js";
 
 // router is an instance of the express router.
 // We use it to define our routes.
-// The router will be added as a middleware and will take control of requests starting with path /record.
+// The router will be added as a middleware and will take control of requests starting with path /agents.
 const router = express.Router();
 
 // This section will help you get a list of all the agents.
@@ -79,4 +79,5 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
+// this is exported to server.js, where it is registered as middleware at the /agents path.
 export default router;

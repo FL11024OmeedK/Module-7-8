@@ -79,20 +79,20 @@ Each feature has its own specification file. Always read both this file and the 
 | Route | Component | Description |
 |-------|-----------|-------------|
 | `/login` | `Login` | Login form — entry point for all users |
-| `/` | `App > RecordList` | Home page — agent table with all agents |
-| `/create` | `App > Record` | Form to create a new agent |
-| `/edit/:id` | `App > Record` | Pre-populated form to edit an existing agent |
+| `/` | `App > AgentList` | Home page — agent table with all agents |
+| `/create` | `App > AgentForm` | Form to create a new agent |
+| `/edit/:id` | `App > AgentForm` | Pre-populated form to edit an existing agent |
 | `/unauthorized` | `Unauthorized` | Error page shown when login credentials are invalid |
 
 ### Backend API Endpoints (Express)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/record` | Return all agents |
-| `GET` | `/record/:id` | Return a single agent by ID |
-| `POST` | `/record` | Create a new agent |
-| `PATCH` | `/record/:id` | Update an existing agent |
-| `DELETE` | `/record/:id` | Delete an agent |
+| `GET` | `/agents` | Return all agents |
+| `GET` | `/agents/:id` | Return a single agent by ID |
+| `POST` | `/agents` | Create a new agent |
+| `PATCH` | `/agents/:id` | Update an existing agent |
+| `DELETE` | `/agents/:id` | Delete an agent |
 | `POST` | `/users/login` | Validate user credentials against MongoDB |
 
 ---
@@ -163,12 +163,12 @@ Each feature has its own specification file. Always read both this file and the 
 
 | Type | Convention | Example |
 |------|------------|---------|
-| JS variables and functions | camelCase | `deleteRecord`, `recordList` |
-| React components | PascalCase | `RecordList`, `Navbar` |
-| JSX component files | PascalCase + `.jsx` | `RecordList.jsx` |
-| Non-component JS files | camelCase + `.js` | `connection.js`, `record.js` |
+| JS variables and functions | camelCase | `deleteAgent`, `agentList` |
+| React components | PascalCase | `AgentList`, `Navbar` |
+| JSX component files | PascalCase + `.jsx` | `AgentList.jsx` |
+| Non-component JS files | camelCase + `.js` | `connection.js`, `agents.js` |
 | CSS classes (Tailwind) | kebab-case (Tailwind standard) | `bg-slate-100`, `text-sm` |
-| MongoDB collections | camelCase plural | `records`, `users` |
+| MongoDB collections | camelCase plural | `agents`, `users` |
 | Environment variables | UPPER_SNAKE_CASE | `ATLAS_URI`, `PORT` |
 
 ### Module System
@@ -186,7 +186,7 @@ Each feature has its own specification file. Always read both this file and the 
 ### API Base URLs
 - Backend API base: `http://localhost:5050`
 - Frontend dev server: `http://localhost:5173`
-- All `fetch()` calls in React must use the full base URL: `http://localhost:5050/record` or `http://localhost:5050/users/login`
+- All `fetch()` calls in React must use the full base URL: `http://localhost:5050/agents` or `http://localhost:5050/users/login`
 
 ### Git Commit Conventions
 | Prefix | When to use |
@@ -214,7 +214,7 @@ Module7/
 │   ├── db/
 │   │   └── connection.js          ← MongoDB Atlas connection, exports db
 │   └── routes/
-│       ├── record.js              ← Agent CRUD endpoints (/record)
+│       ├── agents.js              ← Agent CRUD endpoints (/agents)
 │       └── users.js               ← Login endpoint (/users/login)
 │
 ├── client/                        ← React frontend
@@ -228,8 +228,8 @@ Module7/
 │       ├── index.css              ← Tailwind base imports
 │       └── components/
 │           ├── Navbar.jsx         ← Logo + logout/create nav links
-│           ├── RecordList.jsx     ← Agent table (home page)
-│           ├── Record.jsx         ← Create + Edit form (shared)
+│           ├── AgentList.jsx     ← Agent table (home page)
+│           ├── AgentForm.jsx         ← Create + Edit form (shared)
 │           ├── Login.jsx          ← Login form
 │           └── Unauthorized.jsx   ← Error page for failed login
 │
@@ -260,7 +260,7 @@ Module7/
 - All JSX component files must use the **`.jsx` extension**
 - Server runs on **port 5050**, client runs on **port 5173**
 - Agent fields are: `first_name`, `last_name`, `email`, `region`, `rating`, `fee`, `sales` — not `name`, `position`, `level` (the tutorial defaults)
-- The `record` route and `records` collection name from the tutorial are kept as-is unless a feature spec says otherwise
+- The `agents` route and `agents` collection name from the tutorial are kept as-is unless a feature spec says otherwise
 
 ---
 
@@ -303,7 +303,7 @@ The project is complete when all of the following are true:
 - [ ] Delete removes the agent from MongoDB and the table refreshes immediately
 - [ ] Rocket Elevators logo, favicon, and page title are applied
 - [ ] Clicking the logo navigates back to the agent list
-- [ ] Agent schema exists in MongoDB (`agents` or `records` collection)
+- [ ] Agent schema exists in MongoDB (`agents` or `agents` collection)
 - [ ] User schema exists in MongoDB (`users` collection)
 - [ ] All CRUD endpoints work end-to-end (verifiable in Postman)
 - [ ] Login endpoint works end-to-end (verifiable in Postman)

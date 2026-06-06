@@ -1,0 +1,577 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3000" height="2200" viewBox="0 0 3000 2200" role="img" aria-labelledby="title desc">
+  <title id="title">RE Admin Detailed File Hierarchy and Data Flow</title>
+  <desc id="desc">Detailed hierarchy and data flow diagram for the client and server files in the RE Admin project.</desc>
+  <style>
+    :root {
+      --bg: #f7f9fc;
+      --ink: #172033;
+      --muted: #526174;
+      --border: #cbd5e1;
+      --line: #8795a8;
+      --client: #ad5a35;
+      --client-soft: #fff2ea;
+      --server: #3f7d4a;
+      --server-soft: #edf8ef;
+      --flow: #244f86;
+      --return: #74458c;
+      --write: #9d5c1f;
+      --delete: #8a3138;
+      --db: #607188;
+      --db-soft: #eef2f7;
+      --root: #203a5f;
+    }
+    text {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      fill: var(--ink);
+    }
+    .title { font-size: 42px; font-weight: 850; }
+    .subtitle { font-size: 18px; fill: var(--muted); }
+    .section-title { font-size: 22px; font-weight: 850; fill: white; letter-spacing: .3px; }
+    .section-desc { font-size: 14px; fill: #edf6ff; }
+    .group-title { font-size: 15px; font-weight: 850; fill: white; }
+    .box-title { font-size: 15px; font-weight: 850; }
+    .file { font-size: 12px; font-weight: 750; }
+    .note { font-size: 11px; fill: var(--muted); }
+    .tiny { font-size: 10px; fill: var(--muted); }
+    .conn { font-size: 10px; fill: white; font-weight: 850; }
+    .table-title { font-size: 17px; font-weight: 850; fill: white; }
+    .table-head { font-size: 12px; font-weight: 850; }
+    .table-text { font-size: 11px; fill: var(--ink); }
+    .table-muted { font-size: 10px; fill: var(--muted); }
+    .shadow { filter: drop-shadow(0 6px 14px rgba(23,32,51,.12)); }
+    .box { fill: white; stroke: var(--border); stroke-width: 1.3; }
+    .client-box { fill: var(--client-soft); stroke: #e0b092; stroke-width: 1.3; }
+    .server-box { fill: var(--server-soft); stroke: #a8d1ae; stroke-width: 1.3; }
+    .db-box { fill: var(--db-soft); stroke: #bbc7d6; stroke-width: 1.3; }
+    .hier { stroke: var(--line); stroke-width: 2; fill: none; }
+    .import { stroke: #737f90; stroke-width: 1.8; fill: none; stroke-dasharray: 7 5; }
+    .request { stroke: var(--flow); stroke-width: 2.4; fill: none; }
+    .response { stroke: var(--return); stroke-width: 2.2; fill: none; stroke-dasharray: 8 5; }
+    .write { stroke: var(--write); stroke-width: 2.3; fill: none; }
+    .remove { stroke: var(--delete); stroke-width: 2.3; fill: none; }
+  </style>
+  <defs>
+    <marker id="arrow-gray" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,3 L0,6 Z" fill="#737f90"/>
+    </marker>
+    <marker id="arrow-request" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,3 L0,6 Z" fill="var(--flow)"/>
+    </marker>
+    <marker id="arrow-response" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,3 L0,6 Z" fill="var(--return)"/>
+    </marker>
+    <marker id="arrow-write" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,3 L0,6 Z" fill="var(--write)"/>
+    </marker>
+    <marker id="arrow-delete" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,3 L0,6 Z" fill="var(--delete)"/>
+    </marker>
+  </defs>
+
+  <rect width="3000" height="2200" fill="var(--bg)"/>
+
+  <text x="80" y="64" class="title">RE Admin File Hierarchy and Detailed Data Flow</text>
+  <text x="80" y="98" class="subtitle">The diagram keeps hierarchy and arrows separate from descriptions. Numbered connectors match the descriptions table at the bottom.</text>
+
+  <!-- Legend -->
+  <g class="shadow">
+    <rect x="2200" y="32" width="700" height="102" rx="10" class="box"/>
+    <text x="2225" y="60" class="box-title">Legend</text>
+    <path d="M2225 82 L2290 82" class="import" marker-end="url(#arrow-gray)"/>
+    <text x="2305" y="86" class="tiny">import / file dependency</text>
+    <path d="M2225 108 L2290 108" class="request" marker-end="url(#arrow-request)"/>
+    <text x="2305" y="112" class="tiny">HTTP request / read flow</text>
+    <path d="M2525 82 L2590 82" class="write" marker-end="url(#arrow-write)"/>
+    <text x="2605" y="86" class="tiny">create/update write flow</text>
+    <path d="M2525 108 L2590 108" class="response" marker-end="url(#arrow-response)"/>
+    <text x="2605" y="112" class="tiny">response / rendered output</text>
+  </g>
+
+  <!-- Root -->
+  <g class="shadow">
+    <rect x="1030" y="165" width="940" height="105" rx="14" fill="var(--root)"/>
+    <text x="1500" y="203" text-anchor="middle" class="section-title">LEVEL 1: APPLICATION ROOT</text>
+    <text x="1500" y="231" text-anchor="middle" class="section-desc">client/ runs the browser interface. server/ runs the Express API and database access.</text>
+    <text x="1500" y="252" text-anchor="middle" class="section-desc">Data starts in client components, travels through server route files, then returns as UI output.</text>
+  </g>
+
+  <path d="M1500 270 L1500 318" class="hier"/>
+  <path d="M590 318 L2410 318" class="hier"/>
+  <path d="M590 318 L590 358" class="hier"/>
+  <path d="M2410 318 L2410 358" class="hier"/>
+
+  <!-- Client section -->
+  <g class="shadow">
+    <rect x="80" y="358" width="1020" height="105" rx="13" fill="var(--client)"/>
+    <text x="590" y="394" text-anchor="middle" class="section-title">LEVEL 2: CLIENT APP / client</text>
+    <text x="590" y="422" text-anchor="middle" class="section-desc">Browser-side React application. It owns routing, forms, page components, visual assets, and fetch requests.</text>
+    <text x="590" y="443" text-anchor="middle" class="section-desc">Inputs: user clicks, typed form values, and URL parameters. Outputs: rendered UI and HTTP requests.</text>
+  </g>
+
+  <!-- Server section -->
+  <g class="shadow">
+    <rect x="1900" y="358" width="1020" height="105" rx="13" fill="var(--server)"/>
+    <text x="2410" y="394" text-anchor="middle" class="section-title">LEVEL 2: SERVER APP / server</text>
+    <text x="2410" y="422" text-anchor="middle" class="section-desc">Node/Express API. It owns middleware, route files, schema helpers, MongoDB connection, and responses.</text>
+    <text x="2410" y="443" text-anchor="middle" class="section-desc">Inputs: request bodies and route params. Outputs: JSON, status codes, and database reads/writes.</text>
+  </g>
+
+  <!-- Center flow lane -->
+  <g class="shadow">
+    <rect x="1240" y="358" width="520" height="870" rx="12" fill="white" stroke="var(--border)"/>
+    <rect x="1240" y="358" width="520" height="40" rx="12" fill="#314f78"/>
+    <text x="1500" y="385" text-anchor="middle" class="group-title">CENTER FLOW LANE: DATA MOVES BETWEEN CLIENT FILES AND SERVER FILES</text>
+    <text x="1270" y="432" class="note">Numbered circles identify each connection.</text>
+    <text x="1270" y="455" class="note">Full descriptions are in the table below.</text>
+    <text x="1270" y="494" class="file">C1-C8</text>
+    <text x="1325" y="494" class="note">client routing and imports</text>
+    <text x="1270" y="522" class="file">S1-S7</text>
+    <text x="1325" y="522" class="note">server imports and mounted routes</text>
+    <text x="1270" y="550" class="file">D1-D12</text>
+    <text x="1325" y="550" class="note">runtime data flow through files</text>
+  </g>
+
+  <!-- Client level 3 -->
+  <path d="M590 463 L590 510" class="hier"/>
+  <path d="M210 510 L970 510" class="hier"/>
+  <path d="M210 510 L210 545" class="hier"/>
+  <path d="M500 510 L500 545" class="hier"/>
+  <path d="M810 510 L810 545" class="hier"/>
+
+  <g class="shadow">
+    <rect x="105" y="545" width="250" height="150" rx="10" class="box"/>
+    <rect x="105" y="545" width="250" height="34" rx="10" fill="#884427"/>
+    <text x="230" y="568" text-anchor="middle" class="group-title">LEVEL 3: CONFIG</text>
+    <text x="128" y="606" class="file">client/package.json</text>
+    <text x="128" y="630" class="file">client/package-lock.json</text>
+    <text x="128" y="654" class="file">vite.config.js</text>
+    <text x="128" y="678" class="file">tailwind/postcss/eslint configs</text>
+  </g>
+
+  <g class="shadow">
+    <rect x="395" y="545" width="250" height="150" rx="10" class="box"/>
+    <rect x="395" y="545" width="250" height="34" rx="10" fill="#884427"/>
+    <text x="520" y="568" text-anchor="middle" class="group-title">LEVEL 3: PUBLIC</text>
+    <text x="418" y="606" class="file">public/rocketLogo.png</text>
+    <text x="418" y="630" class="file">public/favicon.png</text>
+    <text x="418" y="654" class="file">public/favicon.svg</text>
+    <text x="418" y="678" class="file">public/icons.svg</text>
+  </g>
+
+  <g class="shadow">
+    <rect x="705" y="545" width="310" height="150" rx="10" class="box"/>
+    <rect x="705" y="545" width="310" height="34" rx="10" fill="#884427"/>
+    <text x="860" y="568" text-anchor="middle" class="group-title">LEVEL 3: SOURCE / src</text>
+    <text x="728" y="606" class="file">src/main.jsx</text>
+    <text x="728" y="630" class="file">src/App.jsx</text>
+    <text x="728" y="654" class="file">src/index.css, src/App.css</text>
+    <text x="728" y="678" class="file">src/components/, src/assets/</text>
+  </g>
+
+  <!-- Client source detail -->
+  <path d="M860 695 L860 735" class="hier"/>
+  <path d="M170 735 L980 735" class="hier"/>
+  <path d="M170 735 L170 770" class="hier"/>
+  <path d="M370 735 L370 770" class="hier"/>
+  <path d="M570 735 L570 770" class="hier"/>
+  <path d="M790 735 L790 770" class="hier"/>
+  <path d="M980 735 L980 770" class="hier"/>
+
+  <g id="main" class="shadow">
+    <rect x="90" y="770" width="160" height="140" rx="9" class="client-box"/>
+    <text x="112" y="797" class="box-title">LEVEL 4: Entry</text>
+    <text x="112" y="828" class="file">main.jsx</text>
+    <text x="112" y="855" class="note">Builds router.</text>
+    <text x="112" y="878" class="note">Mounts React.</text>
+  </g>
+
+  <g id="app" class="shadow">
+    <rect x="290" y="770" width="160" height="140" rx="9" class="client-box"/>
+    <text x="312" y="797" class="box-title">LEVEL 4: Layout</text>
+    <text x="312" y="828" class="file">App.jsx</text>
+    <text x="312" y="855" class="note">Renders Navbar.</text>
+    <text x="312" y="878" class="note">Renders Outlet.</text>
+  </g>
+
+  <g id="styles" class="shadow">
+    <rect x="490" y="770" width="160" height="140" rx="9" class="client-box"/>
+    <text x="512" y="797" class="box-title">LEVEL 4: Styles</text>
+    <text x="512" y="828" class="file">index.css</text>
+    <text x="512" y="852" class="file">App.css</text>
+    <text x="512" y="879" class="note">Controls CSS output.</text>
+  </g>
+
+  <g id="components" class="shadow">
+    <rect x="690" y="770" width="220" height="140" rx="9" class="client-box"/>
+    <text x="712" y="797" class="box-title">LEVEL 4: Components</text>
+    <text x="712" y="828" class="file">Navbar.jsx</text>
+    <text x="712" y="852" class="file">Login.jsx, Unauthorized.jsx</text>
+    <text x="712" y="876" class="file">RecordList.jsx, Record.jsx</text>
+  </g>
+
+  <g id="assets" class="shadow">
+    <rect x="930" y="770" width="155" height="140" rx="9" class="client-box"/>
+    <text x="952" y="797" class="box-title">LEVEL 4: Assets</text>
+    <text x="952" y="828" class="file">hero.png</text>
+    <text x="952" y="852" class="file">react.svg</text>
+    <text x="952" y="876" class="file">vite.svg</text>
+  </g>
+
+  <!-- Client components detail -->
+  <path d="M800 910 L800 955" class="hier"/>
+  <path d="M135 955 L1010 955" class="hier"/>
+  <path d="M135 955 L135 990" class="hier"/>
+  <path d="M320 955 L320 990" class="hier"/>
+  <path d="M505 955 L505 990" class="hier"/>
+  <path d="M700 955 L700 990" class="hier"/>
+  <path d="M920 955 L920 990" class="hier"/>
+  <path d="M1010 955 L1010 990" class="hier"/>
+
+  <g id="navbar" class="shadow">
+    <rect x="60" y="990" width="150" height="170" rx="9" class="client-box"/>
+    <text x="82" y="1018" class="box-title">Navbar.jsx</text>
+    <text x="82" y="1050" class="note">Uses NavLink.</text>
+    <text x="82" y="1074" class="note">Uses navigate().</text>
+    <text x="82" y="1098" class="note">Shows logo.</text>
+    <text x="82" y="1133" class="tiny">Routes: /, /create, /login</text>
+  </g>
+
+  <g id="login" class="shadow">
+    <rect x="245" y="990" width="150" height="170" rx="9" class="client-box"/>
+    <text x="267" y="1018" class="box-title">Login.jsx</text>
+    <text x="267" y="1050" class="note">Collects email.</text>
+    <text x="267" y="1074" class="note">Collects password.</text>
+    <text x="267" y="1098" class="note">fetch login API.</text>
+    <text x="267" y="1133" class="tiny">Output: redirect.</text>
+  </g>
+
+  <g id="unauthorized" class="shadow">
+    <rect x="430" y="990" width="150" height="170" rx="9" class="client-box"/>
+    <text x="452" y="1018" class="box-title">Unauthorized.jsx</text>
+    <text x="452" y="1050" class="note">Displays failed</text>
+    <text x="452" y="1074" class="note">login output.</text>
+  </g>
+
+  <g id="recordlist" class="shadow">
+    <rect x="625" y="990" width="170" height="170" rx="9" class="client-box"/>
+    <text x="647" y="1018" class="box-title">RecordList.jsx</text>
+    <text x="647" y="1050" class="note">fetch GET agents.</text>
+    <text x="647" y="1074" class="note">fetch DELETE agent.</text>
+    <text x="647" y="1098" class="note">Renders AgentRow.</text>
+    <text x="647" y="1133" class="tiny">Output: table.</text>
+  </g>
+
+  <g id="record" class="shadow">
+    <rect x="835" y="990" width="170" height="170" rx="9" class="client-box"/>
+    <text x="857" y="1018" class="box-title">Record.jsx</text>
+    <text x="857" y="1050" class="note">fetch GET one.</text>
+    <text x="857" y="1074" class="note">fetch POST create.</text>
+    <text x="857" y="1098" class="note">fetch PATCH edit.</text>
+    <text x="857" y="1133" class="tiny">Output: form save.</text>
+  </g>
+
+  <!-- Server level 3 -->
+  <path d="M2410 463 L2410 510" class="hier"/>
+  <path d="M2025 510 L2790 510" class="hier"/>
+  <path d="M2025 510 L2025 545" class="hier"/>
+  <path d="M2265 510 L2265 545" class="hier"/>
+  <path d="M2505 510 L2505 545" class="hier"/>
+  <path d="M2790 510 L2790 545" class="hier"/>
+
+  <g class="shadow">
+    <rect x="1905" y="545" width="240" height="150" rx="10" class="box"/>
+    <rect x="1905" y="545" width="240" height="34" rx="10" fill="#2e6338"/>
+    <text x="2025" y="568" text-anchor="middle" class="group-title">LEVEL 3: CONFIG</text>
+    <text x="1928" y="606" class="file">server/package.json</text>
+    <text x="1928" y="630" class="file">server/package-lock.json</text>
+    <text x="1928" y="654" class="file">server/config.env</text>
+    <text x="1928" y="678" class="file">server/seed.js</text>
+  </g>
+
+  <g id="serverjs" class="shadow">
+    <rect x="2185" y="545" width="220" height="150" rx="10" class="server-box"/>
+    <rect x="2185" y="545" width="220" height="34" rx="10" fill="#2e6338"/>
+    <text x="2295" y="568" text-anchor="middle" class="group-title">LEVEL 3: ENTRY</text>
+    <text x="2208" y="606" class="file">server.js</text>
+    <text x="2208" y="632" class="note">Imports routes.</text>
+    <text x="2208" y="656" class="note">Enables middleware.</text>
+    <text x="2208" y="680" class="note">Starts port 5050.</text>
+  </g>
+
+  <g id="routes" class="shadow">
+    <rect x="2445" y="545" width="220" height="150" rx="10" class="server-box"/>
+    <rect x="2445" y="545" width="220" height="34" rx="10" fill="#2e6338"/>
+    <text x="2555" y="568" text-anchor="middle" class="group-title">LEVEL 3: ROUTES</text>
+    <text x="2468" y="606" class="file">routes/record.js</text>
+    <text x="2468" y="630" class="file">routes/users.js</text>
+    <text x="2468" y="662" class="note">Similar API endpoint files.</text>
+  </g>
+
+  <g id="dbgroup" class="shadow">
+    <rect x="2705" y="545" width="220" height="150" rx="10" class="server-box"/>
+    <rect x="2705" y="545" width="220" height="34" rx="10" fill="#2e6338"/>
+    <text x="2815" y="568" text-anchor="middle" class="group-title">LEVEL 3: DATABASE CODE</text>
+    <text x="2728" y="606" class="file">db/connection.js</text>
+    <text x="2728" y="630" class="file">db/schemas/agent.schema.js</text>
+    <text x="2728" y="654" class="file">db/schemas/user.schema.js</text>
+  </g>
+
+  <!-- Server detail -->
+  <path d="M2555 695 L2555 735" class="hier"/>
+  <path d="M2185 735 L2820 735" class="hier"/>
+  <path d="M2185 735 L2185 770" class="hier"/>
+  <path d="M2445 735 L2445 770" class="hier"/>
+  <path d="M2665 735 L2665 770" class="hier"/>
+  <path d="M2820 735 L2820 770" class="hier"/>
+
+  <g id="usersjs" class="shadow">
+    <rect x="2100" y="770" width="170" height="180" rx="9" class="server-box"/>
+    <text x="2122" y="798" class="box-title">users.js</text>
+    <text x="2122" y="830" class="file">POST /users/login</text>
+    <text x="2122" y="862" class="note">Reads req.body.</text>
+    <text x="2122" y="886" class="note">Queries usersDb.</text>
+    <text x="2122" y="910" class="note">Returns 200/401.</text>
+  </g>
+
+  <g id="recordjs" class="shadow">
+    <rect x="2310" y="770" width="210" height="180" rx="9" class="server-box"/>
+    <text x="2332" y="798" class="box-title">record.js</text>
+    <text x="2332" y="830" class="file">GET /record/</text>
+    <text x="2332" y="854" class="file">GET /record/:id</text>
+    <text x="2332" y="878" class="file">POST /record</text>
+    <text x="2332" y="902" class="file">PATCH /record/:id</text>
+    <text x="2332" y="926" class="file">DELETE /record/:id</text>
+  </g>
+
+  <g id="connection" class="shadow">
+    <rect x="2560" y="770" width="170" height="180" rx="9" class="server-box"/>
+    <text x="2582" y="798" class="box-title">connection.js</text>
+    <text x="2582" y="830" class="note">Uses ATLAS_URI.</text>
+    <text x="2582" y="854" class="note">Creates MongoClient.</text>
+    <text x="2582" y="878" class="note">Exports agentsDb.</text>
+    <text x="2582" y="902" class="note">Exports usersDb.</text>
+  </g>
+
+  <g id="schemas" class="shadow">
+    <rect x="2760" y="770" width="190" height="180" rx="9" class="server-box"/>
+    <text x="2782" y="798" class="box-title">schemas/*.js</text>
+    <text x="2782" y="830" class="file">agent.schema.js</text>
+    <text x="2782" y="854" class="note">createAgent()</text>
+    <text x="2782" y="878" class="note">updateAgent()</text>
+    <text x="2782" y="912" class="file">user.schema.js</text>
+    <text x="2782" y="936" class="note">createUser()</text>
+  </g>
+
+  <!-- DB targets -->
+  <path d="M2645 950 L2645 990" class="hier"/>
+  <path d="M2420 990 L2820 990" class="hier"/>
+  <path d="M2420 990 L2420 1025" class="hier"/>
+  <path d="M2820 990 L2820 1025" class="hier"/>
+
+  <g id="agentsdb" class="shadow">
+    <rect x="2305" y="1025" width="230" height="135" rx="9" class="db-box"/>
+    <rect x="2305" y="1025" width="230" height="34" rx="9" fill="var(--db)"/>
+    <text x="2420" y="1048" text-anchor="middle" class="group-title">LEVEL 5: MONGODB</text>
+    <text x="2328" y="1086" class="file">agents database</text>
+    <text x="2328" y="1110" class="file">agents collection</text>
+    <text x="2328" y="1140" class="note">Stores agent records.</text>
+  </g>
+
+  <g id="usersdb" class="shadow">
+    <rect x="2705" y="1025" width="230" height="135" rx="9" class="db-box"/>
+    <rect x="2705" y="1025" width="230" height="34" rx="9" fill="var(--db)"/>
+    <text x="2820" y="1048" text-anchor="middle" class="group-title">LEVEL 5: MONGODB</text>
+    <text x="2728" y="1086" class="file">users database</text>
+    <text x="2728" y="1110" class="file">users collection</text>
+    <text x="2728" y="1140" class="note">Stores login accounts.</text>
+  </g>
+
+  <!-- Connection id helper circles -->
+  <g>
+    <!-- Client internal/import connections -->
+    <path d="M250 838 L290 838" class="import" marker-end="url(#arrow-gray)"/>
+    <circle cx="270" cy="818" r="13" fill="#737f90"/><text x="270" y="822" text-anchor="middle" class="conn">C1</text>
+
+    <path d="M250 858 C410 730, 710 730, 800 770" class="import" marker-end="url(#arrow-gray)"/>
+    <circle cx="535" cy="728" r="13" fill="#737f90"/><text x="535" y="732" text-anchor="middle" class="conn">C2</text>
+
+    <path d="M370 910 C315 940, 210 950, 135 990" class="import" marker-end="url(#arrow-gray)"/>
+    <circle cx="278" cy="940" r="13" fill="#737f90"/><text x="278" y="944" text-anchor="middle" class="conn">C3</text>
+
+    <path d="M170 910 C205 945, 280 958, 320 990" class="import" marker-end="url(#arrow-gray)"/>
+    <circle cx="245" cy="966" r="13" fill="#737f90"/><text x="245" y="970" text-anchor="middle" class="conn">C4</text>
+
+    <path d="M170 910 C255 932, 430 958, 505 990" class="import" marker-end="url(#arrow-gray)"/>
+    <circle cx="382" cy="950" r="13" fill="#737f90"/><text x="382" y="954" text-anchor="middle" class="conn">C5</text>
+
+    <path d="M170 910 C335 922, 595 958, 710 990" class="import" marker-end="url(#arrow-gray)"/>
+    <circle cx="540" cy="940" r="13" fill="#737f90"/><text x="540" y="944" text-anchor="middle" class="conn">C6</text>
+
+    <path d="M170 910 C390 910, 780 950, 920 990" class="import" marker-end="url(#arrow-gray)"/>
+    <circle cx="710" cy="940" r="13" fill="#737f90"/><text x="710" y="944" text-anchor="middle" class="conn">C7</text>
+
+    <path d="M520 695 C520 720, 500 740, 500 770" class="import" marker-end="url(#arrow-gray)"/>
+    <circle cx="500" cy="727" r="13" fill="#737f90"/><text x="500" y="731" text-anchor="middle" class="conn">C8</text>
+  </g>
+
+  <g>
+    <!-- Server internal/import connections -->
+    <path d="M2295 695 C2295 720, 2185 735, 2185 770" class="import" marker-end="url(#arrow-gray)"/>
+    <circle cx="2230" cy="725" r="13" fill="#737f90"/><text x="2230" y="729" text-anchor="middle" class="conn">S1</text>
+
+    <path d="M2295 695 C2295 722, 2415 735, 2415 770" class="import" marker-end="url(#arrow-gray)"/>
+    <circle cx="2360" cy="725" r="13" fill="#737f90"/><text x="2360" y="729" text-anchor="middle" class="conn">S2</text>
+
+    <path d="M2270 860 L2560 860" class="import" marker-end="url(#arrow-gray)"/>
+    <circle cx="2420" cy="840" r="13" fill="#737f90"/><text x="2420" y="844" text-anchor="middle" class="conn">S3</text>
+
+    <path d="M2520 860 L2560 860" class="import" marker-end="url(#arrow-gray)"/>
+    <circle cx="2540" cy="840" r="13" fill="#737f90"/><text x="2540" y="844" text-anchor="middle" class="conn">S4</text>
+
+    <path d="M2520 900 C2630 930, 2755 918, 2760 850" class="import" marker-end="url(#arrow-gray)"/>
+    <circle cx="2648" cy="930" r="13" fill="#737f90"/><text x="2648" y="934" text-anchor="middle" class="conn">S5</text>
+
+    <path d="M2645 950 C2640 995, 2460 995, 2420 1025" class="import" marker-end="url(#arrow-gray)"/>
+    <circle cx="2535" cy="1002" r="13" fill="#737f90"/><text x="2535" y="1006" text-anchor="middle" class="conn">S6</text>
+
+    <path d="M2645 950 C2680 985, 2785 990, 2820 1025" class="import" marker-end="url(#arrow-gray)"/>
+    <circle cx="2740" cy="986" r="13" fill="#737f90"/><text x="2740" y="990" text-anchor="middle" class="conn">S7</text>
+  </g>
+
+  <g>
+    <!-- Runtime data connections kept in center lane or open corridors -->
+    <path d="M395 1074 C775 1074, 1090 620, 1240 620" class="request" marker-end="url(#arrow-request)"/>
+    <path d="M1760 620 C1900 620, 2040 830, 2100 830" class="request" marker-end="url(#arrow-request)"/>
+    <circle cx="1500" cy="620" r="14" fill="var(--flow)"/><text x="1500" y="624" text-anchor="middle" class="conn">D1</text>
+
+    <path d="M2270 886 C2450 968, 2780 955, 2820 1025" class="request" marker-end="url(#arrow-request)"/>
+    <circle cx="2550" cy="970" r="14" fill="var(--flow)"/><text x="2550" y="974" text-anchor="middle" class="conn">D2</text>
+
+    <path d="M2705 1095 C2120 1250, 840 1222, 395 1114" class="response" marker-end="url(#arrow-response)"/>
+    <circle cx="1500" cy="1268" r="14" fill="var(--return)"/><text x="1500" y="1272" text-anchor="middle" class="conn">D3</text>
+
+    <path d="M795 1050 C980 1040, 1100 700, 1240 700" class="request" marker-end="url(#arrow-request)"/>
+    <path d="M1760 700 C1910 700, 2200 830, 2310 830" class="request" marker-end="url(#arrow-request)"/>
+    <circle cx="1500" cy="700" r="14" fill="var(--flow)"/><text x="1500" y="704" text-anchor="middle" class="conn">D4</text>
+
+    <path d="M2310 830 C2210 980, 2270 1015, 2305 1086" class="request" marker-end="url(#arrow-request)"/>
+    <circle cx="2248" cy="972" r="14" fill="var(--flow)"/><text x="2248" y="976" text-anchor="middle" class="conn">D5</text>
+
+    <path d="M2305 1120 C1780 1340, 1040 1235, 795 1090" class="response" marker-end="url(#arrow-response)"/>
+    <circle cx="1500" cy="1355" r="14" fill="var(--return)"/><text x="1500" y="1359" text-anchor="middle" class="conn">D6</text>
+
+    <path d="M1005 1050 C1110 1040, 1140 780, 1240 780" class="request" marker-end="url(#arrow-request)"/>
+    <path d="M1760 780 C1910 780, 2190 854, 2310 854" class="request" marker-end="url(#arrow-request)"/>
+    <circle cx="1500" cy="780" r="14" fill="var(--flow)"/><text x="1500" y="784" text-anchor="middle" class="conn">D7</text>
+
+    <path d="M2305 1105 C1780 1300, 1110 1195, 1005 1075" class="response" marker-end="url(#arrow-response)"/>
+    <circle cx="1650" cy="1240" r="14" fill="var(--return)"/><text x="1650" y="1244" text-anchor="middle" class="conn">D8</text>
+
+    <path d="M1005 1074 C1120 1074, 1150 860, 1240 860" class="write" marker-end="url(#arrow-write)"/>
+    <path d="M1760 860 C1900 860, 2200 878, 2310 878" class="write" marker-end="url(#arrow-write)"/>
+    <circle cx="1500" cy="860" r="14" fill="var(--write)"/><text x="1500" y="864" text-anchor="middle" class="conn">D9</text>
+
+    <path d="M2520 878 C2625 885, 2725 850, 2760 830" class="write" marker-end="url(#arrow-write)"/>
+    <path d="M2310 878 C2240 1015, 2265 1058, 2305 1086" class="write" marker-end="url(#arrow-write)"/>
+    <circle cx="2655" cy="870" r="14" fill="var(--write)"/><text x="2655" y="874" text-anchor="middle" class="conn">D10</text>
+
+    <path d="M1005 1098 C1115 1098, 1160 940, 1240 940" class="write" marker-end="url(#arrow-write)"/>
+    <path d="M1760 940 C1915 940, 2195 902, 2310 902" class="write" marker-end="url(#arrow-write)"/>
+    <circle cx="1500" cy="940" r="14" fill="var(--write)"/><text x="1500" y="944" text-anchor="middle" class="conn">D11</text>
+
+    <path d="M795 1074 C970 1080, 1120 1025, 1240 1025" class="remove" marker-end="url(#arrow-delete)"/>
+    <path d="M1760 1025 C1920 1025, 2200 926, 2310 926" class="remove" marker-end="url(#arrow-delete)"/>
+    <path d="M2310 926 C2190 1040, 2255 1090, 2305 1110" class="remove" marker-end="url(#arrow-delete)"/>
+    <circle cx="1500" cy="1025" r="14" fill="var(--delete)"/><text x="1500" y="1029" text-anchor="middle" class="conn">D12</text>
+  </g>
+
+  <!-- Description table -->
+  <g class="shadow">
+    <rect x="80" y="1430" width="2840" height="690" rx="12" class="box"/>
+    <rect x="80" y="1430" width="2840" height="44" rx="12" fill="var(--root)"/>
+    <text x="1500" y="1459" text-anchor="middle" class="table-title">Connection Descriptions: How File Names Connect as Data Flows Through the Hierarchy</text>
+
+    <!-- Column headers -->
+    <text x="115" y="1508" class="table-head">ID</text>
+    <text x="165" y="1508" class="table-head">Connection description</text>
+    <text x="1165" y="1508" class="table-head">ID</text>
+    <text x="1215" y="1508" class="table-head">Connection description</text>
+    <text x="2115" y="1508" class="table-head">ID</text>
+    <text x="2165" y="1508" class="table-head">Connection description</text>
+
+    <!-- Column 1 -->
+    <text x="115" y="1542" class="file">C1</text>
+    <text x="165" y="1542" class="table-text">client/src/main.jsx imports client/src/App.jsx so routed pages can share the App layout.</text>
+    <text x="115" y="1575" class="file">C2</text>
+    <text x="165" y="1575" class="table-text">client/src/main.jsx imports Navbar/Login/Unauthorized/RecordList/Record route components.</text>
+    <text x="115" y="1608" class="file">C3</text>
+    <text x="165" y="1608" class="table-text">client/src/App.jsx imports client/src/components/Navbar.jsx and renders it above Outlet.</text>
+    <text x="115" y="1641" class="file">C4</text>
+    <text x="165" y="1641" class="table-text">main.jsx maps /login to client/src/components/Login.jsx.</text>
+    <text x="115" y="1674" class="file">C5</text>
+    <text x="165" y="1674" class="table-text">main.jsx maps /unauthorized to client/src/components/Unauthorized.jsx.</text>
+    <text x="115" y="1707" class="file">C6</text>
+    <text x="165" y="1707" class="table-text">main.jsx maps / to client/src/components/RecordList.jsx inside App.jsx.</text>
+    <text x="115" y="1740" class="file">C7</text>
+    <text x="165" y="1740" class="table-text">main.jsx maps /create and /edit/:id to client/src/components/Record.jsx inside App.jsx.</text>
+    <text x="115" y="1773" class="file">C8</text>
+    <text x="165" y="1773" class="table-text">client/src/index.css and client/src/App.css provide styling used by rendered React files.</text>
+    <text x="115" y="1806" class="file">S1</text>
+    <text x="165" y="1806" class="table-text">server/server.js imports server/routes/users.js and mounts it at /users.</text>
+    <text x="115" y="1839" class="file">S2</text>
+    <text x="165" y="1839" class="table-text">server/server.js imports server/routes/record.js and mounts it at /record.</text>
+    <text x="115" y="1872" class="file">S3</text>
+    <text x="165" y="1872" class="table-text">server/routes/users.js imports usersDb from server/db/connection.js.</text>
+    <text x="115" y="1905" class="file">S4</text>
+    <text x="165" y="1905" class="table-text">server/routes/record.js imports agentsDb from server/db/connection.js.</text>
+
+    <!-- Column 2 -->
+    <text x="1165" y="1542" class="file">S5</text>
+    <text x="1215" y="1542" class="table-text">server/routes/record.js imports createAgent and updateAgent from agent.schema.js.</text>
+    <text x="1165" y="1575" class="file">S6</text>
+    <text x="1215" y="1575" class="table-text">server/db/connection.js exposes agentsDb, which points to MongoDB agents.agents.</text>
+    <text x="1165" y="1608" class="file">S7</text>
+    <text x="1215" y="1608" class="table-text">server/db/connection.js exposes usersDb, which points to MongoDB users.users.</text>
+    <text x="1165" y="1641" class="file">D1</text>
+    <text x="1215" y="1641" class="table-text">Login.jsx sends POST /users/login; server.js routes it into users.js.</text>
+    <text x="1165" y="1674" class="file">D2</text>
+    <text x="1215" y="1674" class="table-text">users.js uses usersDb from connection.js to findOne({ email }) in users collection.</text>
+    <text x="1165" y="1707" class="file">D3</text>
+    <text x="1215" y="1707" class="table-text">users.js returns 200 or 401; Login.jsx navigates to / or /unauthorized.</text>
+    <text x="1165" y="1740" class="file">D4</text>
+    <text x="1215" y="1740" class="table-text">RecordList.jsx sends GET /record/; server.js routes it into record.js.</text>
+    <text x="1165" y="1773" class="file">D5</text>
+    <text x="1215" y="1773" class="table-text">record.js uses agentsDb from connection.js to read all documents in agents collection.</text>
+    <text x="1165" y="1806" class="file">D6</text>
+    <text x="1215" y="1806" class="table-text">record.js returns the agent array; RecordList.jsx renders rows in the table.</text>
+    <text x="1165" y="1839" class="file">D7</text>
+    <text x="1215" y="1839" class="table-text">Record.jsx sends GET /record/:id; record.js converts params.id into ObjectId.</text>
+    <text x="1165" y="1872" class="file">D8</text>
+    <text x="1215" y="1872" class="table-text">record.js returns one agent document; Record.jsx fills the edit form with that data.</text>
+    <text x="1165" y="1905" class="file">D9</text>
+    <text x="1215" y="1905" class="table-text">Record.jsx sends POST /record with form JSON to create a new agent.</text>
+
+    <!-- Column 3 -->
+    <text x="2115" y="1542" class="file">D10</text>
+    <text x="2165" y="1542" class="table-text">record.js passes POST data through createAgent() in agent.schema.js.</text>
+    <text x="2165" y="1565" class="table-muted">createAgent() normalizes rating/fee numbers and adds sales: 0 before insertOne().</text>
+    <text x="2115" y="1608" class="file">D11</text>
+    <text x="2165" y="1608" class="table-text">Record.jsx sends PATCH /record/:id; record.js passes form data through updateAgent().</text>
+    <text x="2165" y="1631" class="table-muted">updateAgent() builds the editable field set before updateOne({ _id }, { $set }).</text>
+    <text x="2115" y="1674" class="file">D12</text>
+    <text x="2165" y="1674" class="table-text">RecordList.jsx sends DELETE /record/:id; record.js calls deleteOne({ _id }).</text>
+    <text x="2165" y="1697" class="table-muted">The delete result returns; RecordList.jsx removes the row from component state.</text>
+    <text x="2115" y="1740" class="file">A1</text>
+    <text x="2165" y="1740" class="table-text">public/rocketLogo.png is referenced by Navbar.jsx and Login.jsx using /rocketLogo.png.</text>
+    <text x="2115" y="1773" class="file">A2</text>
+    <text x="2165" y="1773" class="table-text">client/public/favicon files and icons.svg are static browser assets served by Vite.</text>
+    <text x="2115" y="1806" class="file">A3</text>
+    <text x="2165" y="1806" class="table-text">client/src/assets files are bundled assets available to imported React source files.</text>
+    <text x="2115" y="1839" class="file">B1</text>
+    <text x="2165" y="1839" class="table-text">server/config.env provides ATLAS_URI and PORT used when starting server/server.js.</text>
+    <text x="2115" y="1872" class="file">B2</text>
+    <text x="2165" y="1872" class="table-text">server/seed.js is a support script for database seed data, separate from live request flow.</text>
+    <text x="2115" y="1905" class="file">B3</text>
+    <text x="2165" y="1905" class="table-text">package.json files describe dependencies used by client source files and server source files.</text>
+  </g>
+</svg>

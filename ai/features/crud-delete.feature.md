@@ -29,15 +29,15 @@ Allow a user to delete an agent from the table. When the Delete button is clicke
 - Confirmation dialog before deleting (no "Are you sure?" prompt required)
 - Soft delete (marking as inactive) — this is a hard delete
 - Any changes to the Create or Edit form
-- Any new backend routes — `DELETE /record/:id` is already implemented
+- Any new backend routes — `DELETE /agents/:id` is already implemented
 
 ---
 
 ## Sub-Requirements (Feature Breakdown)
 
-- Delete Button — the Delete button in `AgentRow` calls `deleteRecord` with the agent's `_id`
-- Frontend Delete Function — `deleteRecord(id)` sends `DELETE http://localhost:5050/record/:id` and removes the agent from local state
-- Backend Delete Route — `DELETE /record/:id` finds the agent by ObjectId and calls `deleteOne()` on the `agents` collection
+- Delete Button — the Delete button in `AgentRow` calls `deleteAgent` with the agent's `_id`
+- Frontend Delete Function — `deleteAgent(id)` sends `DELETE http://localhost:5050/agents/:id` and removes the agent from local state
+- Backend Delete Route — `DELETE /agents/:id` finds the agent by ObjectId and calls `deleteOne()` on the `agents` collection
 - Table Refresh — after deletion, the agent disappears from the table immediately without a page reload
 
 ---
@@ -46,7 +46,7 @@ Allow a user to delete an agent from the table. When the Delete button is clicke
 
 1. User sees the agent table on the home page
 2. User clicks the Delete button on a specific agent row
-3. The frontend sends `DELETE http://localhost:5050/record/:id` to the backend
+3. The frontend sends `DELETE http://localhost:5050/agents/:id` to the backend
 4. The backend deletes the matching document from MongoDB
 5. The frontend filters the deleted agent out of local state
 6. React re-renders the table — the deleted agent is gone immediately
@@ -57,11 +57,11 @@ Allow a user to delete an agent from the table. When the Delete button is clicke
 
 ### Frontend
 
-- `client/src/components/RecordList.jsx` — `deleteRecord()` function and Delete button in `AgentRow`
+- `client/src/components/AgentList.jsx` — `deleteAgent()` function and Delete button in `AgentRow`
 
 ### Backend / API
 
-- `DELETE /record/:id` — receives the agent `_id` as a URL parameter, deletes the matching document from `agentsDb.collection("agents")`, returns 200 with the deletion result
+- `DELETE /agents/:id` — receives the agent `_id` as a URL parameter, deletes the matching document from `agentsDb.collection("agents")`, returns 200 with the deletion result
 
 ---
 
@@ -87,7 +87,7 @@ Allow a user to delete an agent from the table. When the Delete button is clicke
 - [ ] The deleted agent no longer appears in MongoDB Atlas
 - [ ] No page reload is required — the table updates in place
 - [ ] All other agents remain in the table after one is deleted
-- [ ] `DELETE /record/:id` returns a 200 response with `deletedCount: 1`
+- [ ] `DELETE /agents/:id` returns a 200 response with `deletedCount: 1`
 
 ---
 

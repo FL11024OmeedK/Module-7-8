@@ -1,0 +1,387 @@
+{
+  "_comment": "RE Admin API — Postman Collection. Import this file into Postman via File > Import. Run POST /users/login first — it captures the JWT token automatically for all agent requests.",
+
+  "info": {
+    "name": "Module 7 — RE Admin API",
+    "description": "All endpoints for the RE Admin MERN application. Base URL: http://localhost:5050. Run POST /users/login first — the token is captured automatically and sent with all /agents requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+
+  "_comment_variables": "Collection variables. Update userEmail and userPassword to match your MongoDB Atlas user. token and agentId are set automatically after login and create requests run.",
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5050",
+      "_comment": "Base URL of the Express backend. Change this if the server runs on a different port."
+    },
+    {
+      "key": "token",
+      "value": "",
+      "_comment": "Automatically populated by POST /users/login. Sent as Authorization: Bearer {{token}} on all /agents requests."
+    },
+    {
+      "key": "agentId",
+      "value": "",
+      "_comment": "Automatically populated by POST /agents. No need to set this manually."
+    },
+    {
+      "key": "userEmail",
+      "value": "omeedkashef@gmail.com",
+      "_comment": "Update this to match the email of the user document you inserted in MongoDB Atlas."
+    },
+    {
+      "key": "userPassword",
+      "value": "yourpassword",
+      "_comment": "Update this to match the password of the user document you inserted in MongoDB Atlas."
+    }
+  ],
+
+  "item": [
+    {
+      "_comment": "Authentication folder — login endpoint with success and failure scenarios.",
+      "name": "Authentication",
+      "description": "POST /users/login validates email and password against the users MongoDB database. Returns 200 with a JWT token on success, 401 on failure.",
+      "item": [
+        {
+          "_comment": "Happy path — correct credentials. Captures JWT token into {{token}} automatically.",
+          "name": "POST /users/login — Success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Assert the response status is 200.",
+                  "pm.test('Status is 200 Login successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// Assert the response body contains a token string.",
+                  "pm.test('Response contains JWT token', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.token).to.be.a('string');",
+                  "});",
+                  "",
+                  "// Save the token as a collection variable so all agent requests",
+                  "// can use it automatically — no copy-pasting required.",
+                  "const response = pm.response.json();",
+                  "if (response.token) {",
+                  "    pm.collectionVariables.set('token', response.token);",
+                  "    console.log('token captured and saved to collection variable');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "login"]
+            },
+            "description": "Logs in with valid credentials. Returns 200 with { token: '...' }. The token is saved automatically to {{token}} for use in all agent requests."
+          }
+        },
+        {
+          "_comment": "Failure scenario 1 — unrecognized email. Asserts 401.",
+          "name": "POST /users/login — Wrong Email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 401 Unauthorized for unknown email', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"unknown@example.com\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "login"]
+            },
+            "description": "Attempts login with an email that does not exist. Expected response: 401 Unauthorized: email not found."
+          }
+        },
+        {
+          "_comment": "Failure scenario 2 — correct email, wrong password. Asserts 401.",
+          "name": "POST /users/login — Wrong Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 401 Unauthorized for wrong password', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"wrongpassword\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "login"]
+            },
+            "description": "Attempts login with correct email but wrong password. Expected response: 401 Unauthorized: incorrect password."
+          }
+        },
+        {
+          "_comment": "No token — hits a protected /agents route without Authorization header. Asserts 401.",
+          "name": "GET /agents — No Token (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 401 when no token is provided', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/agents",
+              "host": ["{{baseUrl}}"],
+              "path": ["agents"]
+            },
+            "description": "Hits GET /agents with no Authorization header. Expected response: 401 No token provided. Confirms that the route is protected."
+          }
+        }
+      ]
+    },
+    {
+      "_comment": "Agents folder — full CRUD. Run POST /users/login first to capture {{token}}. Run POST /agents to capture {{agentId}}.",
+      "name": "Agents",
+      "description": "Full CRUD operations for agent records. All requests require a valid JWT in the Authorization header — run POST /users/login first. Run POST /agents — Create Agent next so agentId is set automatically for GET, PATCH, and DELETE.",
+      "item": [
+        {
+          "_comment": "CREATE — inserts a new agent. Asserts 201, verifies insertedId exists, saves it as {{agentId}}.",
+          "name": "POST /agents — Create Agent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response contains insertedId', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.insertedId).to.be.a('string');",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "if (response.insertedId) {",
+                  "    pm.collectionVariables.set('agentId', response.insertedId);",
+                  "    console.log('agentId automatically set to:', response.insertedId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Orlando\",\n  \"last_name\": \"Perez\",\n  \"email\": \"perez@rocket.elv\",\n  \"region\": \"North\",\n  \"rating\": 95,\n  \"fee\": 10000\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/agents",
+              "host": ["{{baseUrl}}"],
+              "path": ["agents"]
+            },
+            "description": "Creates a new agent. Requires Authorization: Bearer {{token}}. sales is set to 0 automatically by the backend. agentId is saved automatically for subsequent requests."
+          }
+        },
+        {
+          "_comment": "READ ALL — returns every agent. Asserts 200 and array response.",
+          "name": "GET /agents — Get All Agents",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is an array', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/agents",
+              "host": ["{{baseUrl}}"],
+              "path": ["agents"]
+            },
+            "description": "Returns all agent documents from the agents database. Requires Authorization: Bearer {{token}}."
+          }
+        },
+        {
+          "_comment": "READ ONE — returns a single agent by ID. Asserts 200 and all agent fields.",
+          "name": "GET /agents/:id — Get Agent by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains all agent fields', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('first_name');",
+                  "    pm.expect(body).to.have.property('last_name');",
+                  "    pm.expect(body).to.have.property('email');",
+                  "    pm.expect(body).to.have.property('region');",
+                  "    pm.expect(body).to.have.property('rating');",
+                  "    pm.expect(body).to.have.property('fee');",
+                  "    pm.expect(body).to.have.property('sales');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/agents/{{agentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["agents", "{{agentId}}"]
+            },
+            "description": "Returns a single agent by MongoDB _id. Requires Authorization: Bearer {{token}}. Uses {{agentId}} set automatically after POST /agents."
+          }
+        },
+        {
+          "_comment": "UPDATE — modifies an existing agent. Asserts 200 and modifiedCount 1.",
+          "name": "PATCH /agents/:id — Update Agent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('One agent was modified', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.modifiedCount).to.eql(1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Orlando\",\n  \"last_name\": \"Perez\",\n  \"email\": \"perez@rocket.elv\",\n  \"region\": \"South\",\n  \"rating\": 98,\n  \"fee\": 12000\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/agents/{{agentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["agents", "{{agentId}}"]
+            },
+            "description": "Updates an existing agent. Requires Authorization: Bearer {{token}}. The sales field cannot be updated through this endpoint."
+          }
+        },
+        {
+          "_comment": "DELETE — permanently removes an agent. Asserts 200 and deletedCount 1.",
+          "name": "DELETE /agents/:id — Delete Agent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('One agent was deleted', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.deletedCount).to.eql(1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/agents/{{agentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["agents", "{{agentId}}"]
+            },
+            "description": "Permanently deletes an agent. Requires Authorization: Bearer {{token}}. Uses {{agentId}} set automatically after POST /agents."
+          }
+        }
+      ]
+    }
+  ]
+}
