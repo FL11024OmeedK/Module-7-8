@@ -21,8 +21,8 @@ Define the data structure for the two MongoDB collections used by RE Admin. Thes
 
 - `agent.schema.js` — defines the Agent document shape and factory functions to build new and updated agents
 - `user.schema.js` — defines the User document shape and a factory function to build new users
-- Updating `routes/record.js` to use agent fields (`first_name`, `last_name`, `email`, `region`, `rating`, `fee`, `sales`) instead of the tutorial defaults (`name`, `position`, `level`)
-- Renaming the MongoDB collection from `records` to `agents`
+- Updating `routes/agents.js` to use agent fields (`first_name`, `last_name`, `email`, `region`, `rating`, `fee`, `sales`) instead of the tutorial defaults (`name`, `position`, `level`)
+- Renaming the MongoDB collection from `agents` to `agents`
 - Separating agent and user data into two distinct databases: `agents` database and `users` database
 
 ### Out of Scope (Excluded)
@@ -39,7 +39,7 @@ Define the data structure for the two MongoDB collections used by RE Admin. Thes
 - Agent Schema — create `agent.schema.js` with `createAgent()` and `updateAgent()` factory functions
 - User Schema — create `user.schema.js` with `createUser()` factory function
 - Database Separation — export `agentsDb` and `usersDb` as two named exports from `connection.js`
-- Route Update — update `record.js` to import `agentsDb` and use agent schema fields throughout all 5 routes
+- Route Update — update `agents.js` to import `agentsDb` and use agent schema fields throughout all 5 routes
 
 ---
 
@@ -47,7 +47,7 @@ Define the data structure for the two MongoDB collections used by RE Admin. Thes
 
 This feature has no frontend interaction. The backend flow is:
 
-1. A route handler receives a request (e.g., `POST /record`)
+1. A route handler receives a request (e.g., `POST /agents`)
 2. It calls `createAgent(req.body)` to get a clean, correctly shaped object
 3. It passes that object to `agentsDb.collection("agents").insertOne()`
 4. MongoDB stores the document in the `agents` database → `agents` collection
@@ -64,11 +64,11 @@ For users: a developer manually inserts a user document directly in MongoDB Atla
 
 ### Backend / API
 
-- `POST /record` — uses `createAgent()` to build the insert document
-- `PATCH /record/:id` — uses `updateAgent()` to build the update document
-- `GET /record` — reads from `agentsDb.collection("agents")`
-- `GET /record/:id` — reads from `agentsDb.collection("agents")`
-- `DELETE /record/:id` — deletes from `agentsDb.collection("agents")`
+- `POST /agents` — uses `createAgent()` to build the insert document
+- `PATCH /agents/:id` — uses `updateAgent()` to build the update document
+- `GET /agents` — reads from `agentsDb.collection("agents")`
+- `GET /agents/:id` — reads from `agentsDb.collection("agents")`
+- `DELETE /agents/:id` — deletes from `agentsDb.collection("agents")`
 
 ---
 
@@ -118,9 +118,9 @@ For users: a developer manually inserts a user document directly in MongoDB Atla
 - [ ] `server/db/schemas/user.schema.js` exists and exports `createUser`
 - [ ] `createUser` returns all 4 user fields
 - [ ] `connection.js` exports `agentsDb` (→ `agents` database) and `usersDb` (→ `users` database) as named exports
-- [ ] `routes/record.js` imports `agentsDb` and uses `agentsDb.collection("agents")` in all 5 routes
-- [ ] `routes/record.js` uses `createAgent` on POST and `updateAgent` on PATCH
-- [ ] No references to `name`, `position`, or `level` remain in `record.js`
+- [ ] `routes/agents.js` imports `agentsDb` and uses `agentsDb.collection("agents")` in all 5 routes
+- [ ] `routes/agents.js` uses `createAgent` on POST and `updateAgent` on PATCH
+- [ ] No references to `name`, `position`, or `level` remain in `agents.js`
 - [ ] A test agent POSTed via Postman appears in MongoDB Atlas with the correct field names
 
 ---

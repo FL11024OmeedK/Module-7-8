@@ -106,7 +106,7 @@ export default function AgentForm() {
   // This following section will display the form that takes the input from the user.
   return (
     <>
-      <h3 className="text-lg font-semibold p-4">Create/Update Agent Record</h3>
+      <h3 className="text-lg font-semibold p-4">Create/Update Agent</h3>
       <form
         onSubmit={onSubmit}
         className="border rounded-lg overflow-hidden p-4"
@@ -238,7 +238,7 @@ export default function AgentForm() {
         </div>
         <input
           type="submit"
-          value="Save Agent Record"
+          value="Save Agent"
           className="inline-flex items-center justify-center whitespace-nowrap text-md font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-slate-100 hover:text-accent-foreground h-9 rounded-md px-3 cursor-pointer mt-4"
         />
       </form>

@@ -23,7 +23,7 @@ Display all agents stored in MongoDB in a table on the home page. The table must
 - Update each table row to display the correct agent fields
 - Full Name is displayed as `first_name + " " + last_name` — concatenated on the frontend
 - Edit and Delete buttons remain in the Action column
-- Data is fetched from `GET /record` which returns all agents from MongoDB
+- Data is fetched from `GET /agents` which returns all agents from MongoDB
 
 ### Out of Scope (Excluded)
 
@@ -31,7 +31,7 @@ Display all agents stored in MongoDB in a table on the home page. The table must
 - Edit form field updates (covered in CRUD Update feature)
 - Sorting or filtering
 - Pagination
-- Any backend changes — the `GET /record` endpoint is already complete
+- Any backend changes — the `GET /agents` endpoint is already complete
 
 ---
 
@@ -47,8 +47,8 @@ Display all agents stored in MongoDB in a table on the home page. The table must
 ## User Flow / Logic (High Level)
 
 1. User navigates to `/` (home page)
-2. `RecordList` component mounts and `useEffect` fires
-3. A `GET` request is sent to `http://localhost:5050/record/`
+2. `AgentList` component mounts and `useEffect` fires
+3. A `GET` request is sent to `http://localhost:5050/agents/`
 4. The backend queries MongoDB `agents.agents` and returns an array of agent documents
 5. React stores the agents in state and re-renders the table
 6. Each agent appears as one row with all 6 columns populated
@@ -60,11 +60,11 @@ Display all agents stored in MongoDB in a table on the home page. The table must
 
 ### Frontend
 
-- `client/src/components/RecordList.jsx` — the only file that changes
+- `client/src/components/AgentList.jsx` — the only file that changes
 
 ### Backend / API
 
-- `GET /record` — returns all agents from the `agents` collection (already implemented, no changes needed)
+- `GET /agents` — returns all agents from the `agents` collection (already implemented, no changes needed)
 
 ---
 
@@ -75,10 +75,10 @@ Each table row maps to one agent document from MongoDB:
 | Column | Source field | Notes |
 |--------|-------------|-------|
 | Full Name | `first_name` + `" "` + `last_name` | Joined on the frontend |
-| Region | `record.region` | String: North, East, South, West |
-| Rating | `record.rating` | Integer 0–100 |
-| Fee | `record.fee` | Dollar amount (Number) |
-| Sales | `record.sales` | Integer, defaults to 0 |
+| Region | `agent.region` | String: North, East, South, West |
+| Rating | `agent.rating` | Integer 0–100 |
+| Fee | `agent.fee` | Dollar amount (Number) |
+| Sales | `agent.sales` | Integer, defaults to 0 |
 | Action | — | Edit link + Delete button |
 
 ---
@@ -86,10 +86,10 @@ Each table row maps to one agent document from MongoDB:
 ## Tech Constraints (Feature-Level)
 
 - Use `fetch()` only — no Axios
-- Do not rename the file `RecordList.jsx`
-- The `key` prop on each row must use `record._id`
+- Do not rename the file `AgentList.jsx`
+- The `key` prop on each row must use `agent._id`
 - Do not change the fetch URL or delete/edit logic
-- Rename the internal sub-component from `Record` to `AgentRow` to avoid confusion with the `Record.jsx` form component
+- Rename the internal sub-component from `AgentRow` to `AgentRow` to avoid confusion with the `AgentForm.jsx` form component
 
 ---
 
@@ -99,7 +99,7 @@ Each table row maps to one agent document from MongoDB:
 - [ ] Full Name column shows `first_name` and `last_name` joined with a space
 - [ ] Region, Rating, Fee, and Sales columns show correct data from MongoDB
 - [ ] Action column still contains the Edit link and Delete button
-- [ ] Table is populated by fetching from `GET /record`
+- [ ] Table is populated by fetching from `GET /agents`
 - [ ] No tutorial columns (Name, Position, Level) appear anywhere in the table
 - [ ] Adding an agent via Postman causes it to appear in the table on refresh
 
@@ -107,7 +107,7 @@ Each table row maps to one agent document from MongoDB:
 
 ## Notes for the AI
 
-- The internal `Record` sub-component at the top of `RecordList.jsx` renders a single table row — rename it to `AgentRow` to avoid confusion with the separate `Record.jsx` form component
-- The variable names `records`, `setRecords`, `recordList`, `deleteRecord` can stay as-is
+- The internal `AgentRow` sub-component at the top of `AgentList.jsx` renders a single table row — rename it to `AgentRow` to avoid confusion with the separate `AgentForm.jsx` form component
+- The variable names `agents`, `setAgents`, `agentList`, `deleteAgent` can stay as-is
 - Do not refactor anything outside of the table headers and row data cells
 - Keep changes minimal — only what is needed to show the correct columns

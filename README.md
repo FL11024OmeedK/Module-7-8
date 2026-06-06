@@ -18,7 +18,7 @@ A React-based MERN single-page application that allows Rocket Elevators staff to
 
 ## Description
 
-RE Admin is an internal back-office administration tool built for Rocket Elevators employees. It provides a secure, interactive interface for viewing, creating, editing, and deleting real estate agent records stored in MongoDB Atlas.
+RE Admin is an internal back-office administration tool built for Rocket Elevators employees. It provides a secure, interactive interface for viewing, creating, editing, and deleting agents stored in MongoDB Atlas.
 
 The application is built on the MERN stack (MongoDB, Express, React, Node.js) and was scaffolded from the official MongoDB MERN Stack Tutorial, then adapted and extended to meet Rocket Elevators business requirements. Access is restricted to registered staff — users must log in with their email and password before reaching the agent management interface.
 
@@ -76,8 +76,8 @@ Module7/
 │           ├── Navbar.jsx           ← Top navigation bar with logo, Create Agent, and Logout
 │           ├── Login.jsx            ← Login page (standalone, no Navbar)
 │           ├── Unauthorized.jsx     ← Error page shown on failed login (standalone, no Navbar)
-│           ├── RecordList.jsx       ← Home page — agent table with Edit and Delete actions
-│           └── Record.jsx          ← Create and Edit form (shared component)
+│           ├── AgentList.jsx        ← Home page — agent table with Edit and Delete actions
+│           └── AgentForm.jsx       ← Create and Edit form (shared component)
 │
 ├── ai/                              ← AI-native specification documents
 │   ├── ai-spec.md                   ← Global project specification

@@ -145,7 +145,8 @@ in the browser, even though the server itself processed the request correctly.
 |---|---|
 | server.js | Composition root. Creates Express app, registers middleware, mounts routers, starts server. Acts like reception, greeting every request and sending it to the right department. |
 | agents.js | Route handler for GET/POST/PATCH/DELETE /agents. Calls agentsDb and agent.schema.js. Acts like the agent operations manager handling all agent requests. |
-| users.js | Route handler for POST /users/login. Calls usersDb from connection.js. Acts like the authentication officer checking login claims. |
+| users.js | Route handler for POST /users/login. Signs and returns a JWT on success. Calls usersDb from connection.js. Acts like the authentication officer checking login claims and issuing access badges. |
+| auth.js | JWT verification middleware. Sits between server.js and agents.js. Reads the Authorization header, verifies the token using JWT_SECRET, and either calls next() or returns 401. Acts like the security checkpoint every /agents request must pass before reaching agents.js. |
 | connection.js | Opens the MongoDB Atlas connection. Exports agentsDb and usersDb. Acts like the database liaison keeping the records department reachable. |
 | agent.schema.js | Pure functions createAgent() and updateAgent(). Shapes and type-casts write payloads. Acts like quality control for agent paperwork. |
 | user.schema.js | Pure function createUser(). Currently unused by any route — placeholder for registration. Acts like a drafted HR form waiting for a registration process. |
@@ -181,15 +182,26 @@ Incoming HTTP request
         │                        requests (which have no body), req.body remains undefined
         │                        but no error is thrown.
         ▼
-   Route handler  ───────────────  agents.js or users.js runs. By this point, the response
-                                  already has CORS headers and req.body is already parsed.
-                                  The handler performs its database operation and sends
-                                  the response.
+   Route match
+        ├── /users  ──────────►  users.js runs directly. No auth required — this is the
+        │                        endpoint that ISSUES tokens. Requiring a token to get a
+        │                        token would make login impossible.
+        │
+        └── /agents ──────────►  requireAuth (auth.js) runs FIRST as a second argument
+                │                to app.use("/agents", requireAuth, agents). auth.js reads
+                │                the Authorization header, verifies the JWT using JWT_SECRET,
+                │                and either calls next() to continue or returns 401 immediately.
+                ▼
+           agents.js runs. By this point CORS headers are set, req.body is parsed,
+           and the JWT has been verified. req.user contains the decoded token payload
+           { id, email } attached by auth.js. The handler performs its database
+           operation and sends the response.
 ```
 
 The order of `app.use()` calls in server.js is what determines this order. If cors() and
 express.json() were moved below the route mounts, they would not execute before the route
-handlers. Order matters.
+handlers. Order matters. requireAuth sits between the global middleware and agents.js
+specifically — it does not run for /users routes.
 
 ### async/await Pattern
 
@@ -437,12 +449,18 @@ main.jsx  [Entry Point] ──────────────────�
     │        │        Exports:   The default export Navbar is imported exclusively by App.jsx.
     │        │                   No other file in the project imports Navbar.jsx. App.jsx
     │        │                   renders it at the top of every page in the App layout.
-    │        │        Functions: logout() is a function defined inside Navbar.jsx that calls
-    │        │                   navigate("/login"). When the user clicks the Logout button,
-    │        │                   this function fires, and React Router immediately renders
+    │        │        Functions: logout() is a function defined inside Navbar.jsx that first
+    │        │                   calls localStorage.removeItem("token") to destroy the JWT
+    │        │                   that Login.jsx stored after a successful login, then calls
+    │        │                   navigate("/login"). Removing the token is critical — without
+    │        │                   it, AgentList.jsx and AgentForm.jsx would still find a token
+    │        │                   in localStorage and attach it to future requests. Once removed,
+    │        │                   any fetch to /agents would send Authorization: Bearer null,
+    │        │                   which auth.js would reject with 401. React Router then renders
     │        │                   Login.jsx — the component that main.jsx has routed at /login.
-    │        │                   No server request is made. No session is cleared. The
-    │        │                   "logout" is purely a client-side navigation to the login page.
+    │        │                   No server request is made during logout. The JWT on the server
+    │        │                   side is not invalidated — JWTs are stateless. Destroying the
+    │        │                   token on the client side is the only logout mechanism here.
     │        │
     │        ├──► AgentList.jsx  [Page / View] ── renders at  /
     │        │        Role:      AgentList.jsx is the main dashboard of the application.
@@ -732,11 +750,20 @@ main.jsx  [Entry Point] ──────────────────�
     │                   The exact request looks like: POST http://localhost:5050/users/login
     │                   with headers { Content-Type: application/json } and body { "email":
     │                   "user@example.com", "password": "secret" }.
-    │        Out:       If users.js returns HTTP 200 { message: "Login successful" }, Login.jsx
-    │                   calls navigate("/"), which renders AgentList.jsx inside the App.jsx
-    │                   layout — the user is now on the main dashboard. If users.js returns
+    │        Out:       If users.js returns HTTP 200 { token: "eyJ..." }, Login.jsx calls
+    │                   response.json() to extract the token, then calls
+    │                   localStorage.setItem("token", token) to persist the JWT in the
+    │                   browser's key-value storage across page refreshes. localStorage
+    │                   is a browser-native store that survives navigation and refresh —
+    │                   the token stays there until explicitly removed by logout() in
+    │                   Navbar.jsx. After storing the token, Login.jsx calls navigate("/"),
+    │                   which renders AgentList.jsx inside the App.jsx layout. AgentList.jsx
+    │                   immediately reads the token back from localStorage via
+    │                   localStorage.getItem("token") and attaches it to the GET /agents
+    │                   fetch as Authorization: Bearer <token>. If users.js returns
     │                   HTTP 401 Unauthorized, Login.jsx calls navigate("/unauthorized"),
-    │                   which renders Unauthorized.jsx as a standalone page.
+    │                   which renders Unauthorized.jsx as a standalone page. No token
+    │                   is stored on failure.
     │        Imports:   useState is imported from 'react' to manage the form{ email, password }
     │                   state object that tracks the two input fields as the user types.
     │                   useNavigate is imported from 'react-router-dom' to redirect to
@@ -750,13 +777,18 @@ main.jsx  [Entry Point] ──────────────────�
     │                   only the field that changed is updated in state.
     │                   onSubmit(e) calls e.preventDefault(), then sends a POST request to
     │                   users.js POST /login with the form credentials as the JSON body.
-    │                   If response.ok is true (status 200), it calls navigate("/") to
-    │                   render AgentList.jsx. If response.ok is false (status 401), it
-    │                   calls navigate("/unauthorized") to render Unauthorized.jsx.
+    │                   If response.ok is true (status 200), it calls response.json() to
+    │                   parse the { token } body, then localStorage.setItem("token", token)
+    │                   to store the JWT, then navigate("/") to render AgentList.jsx.
+    │                   If response.ok is false (status 401), it calls
+    │                   navigate("/unauthorized") to render Unauthorized.jsx.
     │        State:     form{ email, password } holds the two controlled input fields. Each
     │                   input's value attribute is bound to its field in form{}, and onChange
     │                   calls updateForm() to keep the displayed text and the state in sync.
     │                   This is the data that gets sent to users.js when the form is submitted.
+    │                   The token returned by users.js is NOT stored in React state — it goes
+    │                   directly into localStorage, where AgentList.jsx, AgentForm.jsx, and
+    │                   any future protected component can read it independently.
     │
     └──► Unauthorized.jsx  [Page / View] ──── renders at  /unauthorized (no Navbar)
              Role:      Unauthorized.jsx is a static guard page. It renders when Login.jsx's
@@ -876,6 +908,8 @@ server.js  [Entry Point] ────────────────── 
     │             object. Importing it causes agents.js's top-level code to run, which
     │             causes connection.js to be imported and client.connect() to be called.
     │             users is imported from users.js, which exports its Express router object.
+    │             requireAuth is imported as a named export from auth.js — it is the
+    │             middleware function that verifies the JWT on every /agents request.
     │  Exports:   server.js exports nothing. It is an entry point that only executes.
     │  Functions: app.use(cors()) wraps every response with cross-origin headers, allowing
     │             the React app at localhost:5173 to receive responses from this server at
@@ -885,10 +919,15 @@ server.js  [Entry Point] ────────────────── 
     │             object, making it available as req.body in agents.js and users.js.
     │             Without this middleware, req.body would be undefined and the route
     │             handlers could not read the data sent by the frontend.
-    │             app.use("/agents", agents) tells Express that any request whose URL
-    │             starts with /agents should be handled by the router exported by agents.js.
+    │             app.use("/agents", requireAuth, agents) tells Express that any request
+    │             whose URL starts with /agents must first pass through requireAuth from
+    │             auth.js. requireAuth verifies the JWT and either calls next() to continue
+    │             to agents.js, or returns 401 immediately. agents.js never runs if the
+    │             token is missing or invalid. This is the line that makes all five agent
+    │             CRUD endpoints protected.
     │             app.use("/users", users) tells Express that any request whose URL starts
-    │             with /users should be handled by the router exported by users.js.
+    │             with /users should be handled by the router exported by users.js. No
+    │             requireAuth here — the login endpoint must be publicly reachable.
     │             app.listen(PORT) starts the HTTP server and begins accepting connections.
     │
     │             Middleware execution order:
@@ -910,6 +949,51 @@ server.js  [Entry Point] ────────────────── 
     │             3. The matched route handler (agents.js or users.js) runs LAST. By the
     │                time it runs, the response already has CORS headers and req.body is
     │                already parsed.
+    │
+    ├──► auth.js  [Middleware] ──────────── guards all  /agents  routes
+    │        Role:      auth.js is a middleware function that sits between server.js and
+    │                   agents.js. It is registered as a second argument in server.js's
+    │                   app.use("/agents", requireAuth, agents) call, which means every
+    │                   single request to any /agents route — GET, POST, PATCH, DELETE —
+    │                   passes through auth.js before agents.js ever runs. If auth.js
+    │                   rejects the request, agents.js is never called. auth.js never
+    │                   runs for /users routes — those are mounted separately without
+    │                   requireAuth, because login must remain publicly reachable.
+    │                   auth.js is the security checkpoint between server.js reception
+    │                   and the agents.js department: no request enters agents.js without
+    │                   first presenting a valid badge to auth.js.
+    │        In:        Every request to /agents arrives here from server.js after cors()
+    │                   and express.json() have already run. auth.js reads
+    │                   req.headers.authorization to find the JWT. The header must be
+    │                   present and must start with "Bearer " — this is the standard format:
+    │                   Authorization: Bearer eyJ... The token string is extracted by
+    │                   splitting on the space: authHeader.split(" ")[1].
+    │        Out:       auth.js calls jwt.verify(token, process.env.JWT_SECRET) from the
+    │                   jsonwebtoken library. jwt.verify() recomputes the token's signature
+    │                   using JWT_SECRET from config.env and checks it matches. It also
+    │                   checks the exp claim — if the token was issued more than 24 hours
+    │                   ago (the expiresIn set by users.js), verify() throws automatically.
+    │                   If verification succeeds, auth.js attaches the decoded payload to
+    │                   req.user = { id, email, iat, exp } and calls next(), which passes
+    │                   control to agents.js. If the header is missing, malformed, or the
+    │                   token is invalid or expired, auth.js calls
+    │                   res.status(401).json({ error: "No token provided" }) or
+    │                   res.status(401).json({ error: "Invalid or expired token" }) and
+    │                   returns immediately — agents.js never runs.
+    │        Imports:   jwt is imported from 'jsonwebtoken' — it provides jwt.verify(),
+    │                   which checks the token's cryptographic signature and expiry.
+    │                   process.env.JWT_SECRET is read from config.env at runtime — this
+    │                   is the same secret that users.js used with jwt.sign() to create
+    │                   the token. Both files must use the same secret or verification fails.
+    │        Exports:   requireAuth is exported as a named export. server.js imports it
+    │                   and inserts it between the "/agents" path and the agents router
+    │                   in the app.use() call. No other file imports auth.js.
+    │        Functions: requireAuth(req, res, next) is the single exported function.
+    │                   It reads req.headers.authorization, extracts the token, calls
+    │                   jwt.verify(), attaches the decoded payload to req.user, and calls
+    │                   next() — or short-circuits with 401 if anything fails. next() is
+    │                   the Express convention for saying "I am done, pass this request
+    │                   to the next handler in the chain" — in this case, agents.js.
     │
     ├──► agents.js  [Route Handler] ──────── handles  GET/POST/PATCH/DELETE  /agents
     │        Role:      agents.js defines the Express router for all agent-related HTTP
@@ -1096,10 +1180,19 @@ server.js  [Entry Point] ────────────────── 
                         that email), users.js sends HTTP 401 "Unauthorized: email not found"
                         back to Login.jsx. If Atlas returns a user document but the password
                         field does not match req.body.password, users.js sends HTTP 401
-                        "Unauthorized: incorrect password." If both match, users.js sends
-                        HTTP 200 { message: "Login successful" }. Login.jsx's onSubmit()
-                        receives the status code and navigates accordingly.
+                        "Unauthorized: incorrect password." If both checks pass, users.js
+                        calls jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET,
+                        { expiresIn: "24h" }) from the jsonwebtoken library. jwt.sign() creates
+                        a base64-encoded string in three parts — header.payload.signature —
+                        where the signature is a cryptographic hash of the payload using
+                        JWT_SECRET. This means any tampering with the payload would invalidate
+                        the signature. users.js sends HTTP 200 { token: "eyJ..." } back to
+                        Login.jsx. Login.jsx stores that token in localStorage. Every subsequent
+                        /agents request attaches it as Authorization: Bearer <token>, which
+                        auth.js verifies using the same JWT_SECRET before agents.js runs.
              Imports:   express is imported from 'express' to create the router instance.
+                        jwt is imported from 'jsonwebtoken' — it provides jwt.sign(), which
+                        creates the signed token on successful login.
                         usersDb is imported as a named export from connection.js — it holds
                         the live MongoDB "users" database reference. connection.js also exports
                         agentsDb, but users.js never imports or uses it.
@@ -1219,15 +1312,23 @@ AgentList.jsx / AgentForm.jsx  [Page / View]
     │             http://localhost:5050/agents/... — this reaches the Express server
     │             started by server.js. server.js sees the /agents prefix and delegates
     │             the request to agents.js via app.use("/agents", agents).
-    │  Functions: getAgents() sends: GET http://localhost:5050/agents/ — no body.
-    │             deleteAgent(id) sends: DELETE http://localhost:5050/agents/:id — no body.
-    │             fetchData() sends: GET http://localhost:5050/agents/:id — no body.
+    │  Functions: getAgents() sends: GET http://localhost:5050/agents/
+    │               with headers { Authorization: Bearer <token from localStorage> }.
+    │             deleteAgent(id) sends: DELETE http://localhost:5050/agents/:id
+    │               with headers { Authorization: Bearer <token from localStorage> }.
+    │             fetchData() sends: GET http://localhost:5050/agents/:id
+    │               with headers { Authorization: Bearer <token from localStorage> }.
     │             onSubmit() [isNew=true] sends: POST http://localhost:5050/agents
-    │               with headers { Content-Type: application/json }
+    │               with headers { Content-Type: application/json,
+    │                              Authorization: Bearer <token from localStorage> }
     │               and body { first_name, last_name, email, region, rating, fee }.
     │             onSubmit() [isNew=false] sends: PATCH http://localhost:5050/agents/:id
-    │               with headers { Content-Type: application/json }
+    │               with headers { Content-Type: application/json,
+    │                              Authorization: Bearer <token from localStorage> }
     │               and body { first_name, last_name, email, region, rating, fee }.
+    │             Every /agents fetch reads the token via localStorage.getItem("token")
+    │             at the moment the request is made. auth.js on the server verifies the
+    │             token before agents.js handles any of these requests.
     │  fetch("http://localhost:5050/agents/...")
     ▼
 agents.js  [Route Handler]
@@ -1467,13 +1568,18 @@ users.js  →  200 "Login successful"  or  401 "Unauthorized"
     │             Check 2: if the document exists but user.password !== req.body.password,
     │             users.js sends HTTP 401 with "Unauthorized: incorrect password". Login.jsx
     │             again navigates to Unauthorized.jsx.
-    │             Check 3: if both the email and password match, users.js sends HTTP 200
-    │             with the body { message: "Login successful" }. Login.jsx's fetch() sees
-    │             response.ok is true (200 is a success code) and calls navigate("/"),
-    │             which renders AgentList.jsx inside the App.jsx layout.
-    │             ⚠ Auth gap: this 200 response does not create a session or issue a token.
-    │               agents.js's five route handlers are accessible via direct HTTP requests
-    │               without going through this login check — they are publicly reachable.
+    │             Check 3: if both the email and password match, users.js calls
+    │             jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET,
+    │             { expiresIn: "24h" }) from the jsonwebtoken library. This creates a
+    │             cryptographically signed token. The payload embeds the user's id and
+    │             email. The signature is computed from the payload + JWT_SECRET — if
+    │             anyone tampers with the payload, the signature check in auth.js will
+    │             fail. users.js sends HTTP 200 with body { token: "eyJ..." }. Login.jsx's
+    │             fetch() sees response.ok is true, extracts the token via response.json(),
+    │             stores it with localStorage.setItem("token", token), and calls navigate("/"),
+    │             which renders AgentList.jsx inside the App.jsx layout. AgentList.jsx then
+    │             immediately reads the token from localStorage and attaches it to its
+    │             first GET /agents fetch as Authorization: Bearer <token>.
     ▼
 Login.jsx  [Page / View]
     │  Role:      Login.jsx receives the HTTP response from users.js and makes the final
@@ -1482,16 +1588,23 @@ Login.jsx  [Page / View]
     │             code (200 or 401) and a body (success message or error string).
     │             Login.jsx checks response.ok — this is true for any 2xx status code
     │             and false for 4xx or 5xx codes.
-    │  Out:       If response.ok is true (users.js returned 200): navigate("/") is called.
-    │             React Router renders AgentList.jsx inside App.jsx at the root path.
-    │             The user sees the agent dashboard. If response.ok is false (users.js
-    │             returned 401): navigate("/unauthorized") is called. React Router renders
-    │             Unauthorized.jsx as a standalone page. The user sees the "Access Denied"
-    │             message and a link back to Login.jsx.
+    │  Out:       If response.ok is true (users.js returned 200): Login.jsx calls
+    │             response.json() to parse the body, extracts the token string, and calls
+    │             localStorage.setItem("token", token). The token is now stored in the
+    │             browser's persistent key-value store — it will survive page refreshes
+    │             and be readable by AgentList.jsx and AgentForm.jsx on every future
+    │             /agents fetch via localStorage.getItem("token"). Login.jsx then calls
+    │             navigate("/"). React Router renders AgentList.jsx inside App.jsx.
+    │             AgentList.jsx mounts, its useEffect fires immediately, and getAgents()
+    │             sends GET /agents with Authorization: Bearer <token> — the token that
+    │             was just stored. auth.js on the server verifies it, and agents.js
+    │             returns the agent data. The user sees the populated dashboard.
+    │             If response.ok is false (users.js returned 401): no token is stored.
+    │             navigate("/unauthorized") is called. React Router renders Unauthorized.jsx.
     │  Functions: useNavigate's navigate("/") sends the user to AgentList.jsx on success.
     │             navigate("/unauthorized") sends the user to Unauthorized.jsx on failure.
-    │  on 200: navigate("/")
-    └  on 401: show error state
+    │  on 200: localStorage.setItem("token") → navigate("/")
+    └  on 401: navigate("/unauthorized")
 ```
 
 ---
@@ -1615,7 +1728,7 @@ from?" or "what does Y return?" without re-reading the full flow sections.
 | POST | /agents | AgentForm onSubmit (isNew=true) | {first_name,last_name,email,region,rating,fee} | {acknowledged:true, insertedId:ObjectId} | 201, 500 |
 | PATCH | /agents/:id | AgentForm onSubmit (isNew=false) | {first_name,last_name,email,region,rating,fee} | {acknowledged:true,matchedCount:1,modifiedCount:1} | 200, 500 |
 | DELETE | /agents/:id | AgentList deleteAgent() | none | {acknowledged:true,deletedCount:1} | 200, 500 |
-| POST | /users/login | Login onSubmit() | {email,password} | {message:"Login successful"} or plain error string | 200, 401, 500 |
+| POST | /users/login | Login onSubmit() | {email,password} | {token:"eyJ..."} on success, plain error string on failure | 200, 401, 500 |
 
 ### 6c. Navigation Map
 
@@ -1639,6 +1752,7 @@ from?" or "what does Y return?" without re-reading the full flow sections.
 | AgentForm | form{} | object | {first_name:"",last_name:"",email:"",region:"",rating:"",fee:""} | setForm() in fetchData() (edit); updateForm() on each keystroke | onSubmit() sends it as request body |
 | AgentForm | isNew | boolean | true | setIsNew(false) in fetchData() when :id found | onSubmit() decides POST vs PATCH |
 | Login | form{} | object | {email:"",password:""} | updateForm() on each keystroke | onSubmit() sends it as request body |
+| localStorage | token | string | not set | localStorage.setItem("token") in Login onSubmit on 200 | localStorage.getItem("token") in AgentList getAgents(), AgentList deleteAgent(), AgentForm fetchData(), AgentForm onSubmit(); localStorage.removeItem("token") in Navbar logout() |
 
 ### 6e. HTTP Status Codes Used in This Project
 
@@ -1646,7 +1760,7 @@ from?" or "what does Y return?" without re-reading the full flow sections.
 |---|---|---|---|---|
 | 200 | OK — request succeeded | Successful GET, PATCH, DELETE, successful login | agents.js, users.js | AgentList, AgentForm, Login |
 | 201 | Created — resource was created | Successful POST (new agent inserted) | agents.js | AgentForm |
-| 401 | Unauthorized — credentials rejected | Wrong email or password | users.js | Login |
+| 401 | Unauthorized — credentials rejected or token missing/invalid | Wrong email or password; missing/expired/tampered JWT | users.js (credential check), auth.js (token check) | Login (credential 401), AgentList/AgentForm (token 401) |
 | 404 | Not Found — resource doesn't exist | Agent _id not found in Atlas | agents.js | AgentForm |
 | 500 | Internal Server Error | Any unhandled database error (caught by catch block) | agents.js, users.js | AgentList, AgentForm, Login (all log to console only) |
 

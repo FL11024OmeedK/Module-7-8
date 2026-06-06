@@ -46,7 +46,7 @@ Module7/
 │   ├── db/
 │   │   └── connection.js    ← Connects to MongoDB Atlas
 │   └── routes/
-│       └── record.js        ← All API endpoints for agent CRUD
+│       └── agents.js        ← All API endpoints for agent CRUD
 │
 ├── client/                  ← The frontend (React + Vite)
 │   ├── index.html           ← The single HTML file the browser loads
@@ -59,8 +59,8 @@ Module7/
 │       ├── index.css        ← Imports Tailwind CSS
 │       └── components/
 │           ├── Navbar.jsx   ← Top navigation bar
-│           ├── RecordList.jsx ← Table showing all agents
-│           └── Record.jsx   ← Form for creating or editing an agent
+│           ├── AgentList.jsx ← Table showing all agents
+│           └── AgentForm.jsx   ← Form for creating or editing an agent
 │
 └── CODEBASE.md              ← You are here
 ```
@@ -129,10 +129,10 @@ This is called **CRUD** — Create, Read, Update, Delete. Almost every data-driv
 
 The frontend and backend are completely separate programs. The React app runs on port `5173`, and the Express server runs on port `5050`. They communicate over HTTP using the browser's built-in `fetch()` function.
 
-Example from `RecordList.jsx`:
+Example from `AgentList.jsx`:
 ```js
-const response = await fetch("http://localhost:5050/record/");
-const records = await response.json();
+const response = await fetch("http://localhost:5050/agents/");
+const agents = await response.json();
 ```
 
 The frontend asks the backend for data, the backend queries MongoDB, and sends back JSON. The frontend then uses that data to render the UI.
@@ -149,11 +149,11 @@ In React, **state** is data that belongs to a component. When state changes, Rea
 
 `useState` is how you create state:
 ```js
-const [records, setRecords] = useState([]);
+const [agents, setAgents] = useState([]);
 //     ^data     ^function to update data   ^initial value
 ```
 
-In `RecordList.jsx`, `records` holds the array of employees. When the component loads, it fetches agents from the API and calls `setRecords(data)`, which triggers a re-render that displays them in the table.
+In `AgentList.jsx`, `agents` holds the array of agents. When the component loads, it fetches agents from the API and calls `setAgents(data)`, which triggers a re-render that displays them in the table.
 
 ### 5. The `useEffect` Hook
 
@@ -163,7 +163,7 @@ In `RecordList.jsx`, `records` holds the array of employees. When the component 
 useEffect(() => {
   // This runs after the component renders
   fetchAgents();
-}, [records.length]); // Only re-run if records.length changes
+}, [agents.length]); // Only re-run if agents.length changes
 ```
 
 The second argument (the dependency array) controls *when* the effect runs. An empty array `[]` means "run once on mount." A value in the array means "re-run when that value changes."
@@ -199,13 +199,13 @@ In `App.jsx`, you'll see `<Outlet />`. This is a React Router concept. `App` is 
 
 So the router setup in `main.jsx` means:
 - App renders the Navbar + Outlet
-- Outlet renders RecordList, or Record (create), or Record (edit), depending on the URL
+- Outlet renders AgentList, or AgentForm (create), or AgentForm (edit), depending on the URL
 
 This pattern keeps your layout consistent across pages without repeating the Navbar in every component.
 
-### 9. One Component, Two Purposes (Record.jsx)
+### 9. One Component, Two Purposes (AgentForm.jsx)
 
-`Record.jsx` handles both *creating* and *editing* an agent. It knows which mode it's in by checking whether a URL parameter exists:
+`AgentForm.jsx` handles both *creating* and *editing* an agent. It knows which mode it's in by checking whether a URL parameter exists:
 
 ```js
 const [isNew, setIsNew] = useState(true); // default: create mode
@@ -254,22 +254,22 @@ Then open `http://localhost:5173` in your browser. The React app will communicat
 
 Here's what happens when a user creates a new agent:
 
-1. User fills out the form in `Record.jsx` and clicks "Save"
-2. `onSubmit()` is called — it sends a `POST` request to `http://localhost:5050/record` with the form data as JSON
-3. Express receives the request at `router.post("/", ...)` in `routes/record.js`
+1. User fills out the form in `AgentForm.jsx` and clicks "Save"
+2. `onSubmit()` is called — it sends a `POST` request to `http://localhost:5050/agents` with the form data as JSON
+3. Express receives the request at `router.post("/", ...)` in `routes/agents.js`
 4. The route handler extracts `name`, `position`, and `level` from `req.body`
-5. It calls `collection.insertOne(newDocument)` to save the record to MongoDB Atlas
+5. It calls `collection.insertOne(newDocument)` to save the agent to MongoDB Atlas
 6. MongoDB stores the document and returns a result (including the new `_id`)
 7. Express sends the result back to the frontend as JSON
-8. `Record.jsx` receives the response, clears the form, and calls `navigate("/")` to go back to the list
-9. `RecordList.jsx` loads and fetches the full list — the new agent now appears in the table
+8. `AgentForm.jsx` receives the response, clears the form, and calls `navigate("/")` to go back to the list
+9. `AgentList.jsx` loads and fetches the full list — the new agent now appears in the table
 
 ---
 
 ## Things to Know for Future Development
 
-- **`ModifyRecord.jsx`** exists in the components folder but is empty. It was likely intended for a refactor that wasn't completed.
-- **`App.css`** contains leftover CSS from the Vite starter template. It's imported in `App.jsx` but doesn't affect the agent record UI, which uses Tailwind exclusively. It can be cleaned up later.
+- **`ModifyAgentForm.jsx`** exists in the components folder but is empty. It was likely intended for a refactor that wasn't completed.
+- **`App.css`** contains leftover CSS from the Vite starter template. It's imported in `App.jsx` but doesn't affect the agent UI, which uses Tailwind exclusively. It can be cleaned up later.
 - The `fetch()` URL is hardcoded as `http://localhost:5050`. In a real production app, this would be an environment variable so it can point to a different server in production.
 - The `config.env` file contains real database credentials. It should never be committed to a public repository.
 

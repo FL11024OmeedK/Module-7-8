@@ -79,4 +79,5 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
+// this is exported to server.js, where it is registered as middleware at the /agents path.
 export default router;
