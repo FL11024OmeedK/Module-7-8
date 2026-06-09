@@ -1,385 +1,402 @@
-# AI_SPEC — RE Admin (Module 8)
+# AI_SPEC — RE Admin (Modules 7–8)
 
-> **Read this file first** before implementing any feature, or asking AI to generate any code.
-> This is the **project-wide master specification**. It owns the global rules; each feature
-> has its own spec file in [`./features/`](./features/) that owns per-feature behavior.
-> Always read **this file + the relevant feature file** before starting a feature.
->
-> Module 8 is built **on top of** the existing Module 7 MERN app (same repository). It adds
-> React-Bootstrap UI, UUID cookie sessions (JWT retired), and a Transactions feature.
+> This document is the **master specification** for RE Admin.
+> It must be read **first** before implementing any feature or asking AI to generate any code.
+> Each feature has its own spec file inside `./ai/features/`. This file owns the project-wide rules; the feature files own per-feature behavior.
+
+> **Module 8 (FSO-1608) is additive.** Everything below from Module 7 still applies. Module 8
+> *adds* seven features (dashboard home, toast notifications, confirmation modals, cookie-based
+> sessions, token validation, header-bar updates, transactions) and *modifies* only the auth
+> approach (JWT → UUID cookie sessions). Module 8 additions are marked **“M8”** throughout.
+> No new repository — built on the existing Module 7 codebase.
 
 ---
 
-## 1. Project Identity
+## Project Identity
 
 - **Project Name:** RE Admin
-- **Short Description:** A React MERN single-page admin app for Rocket Elevators employees to manage **agents** (full CRUD) and record **transactions**, protected by a server-side **session** system validated against MongoDB.
+- **Short Description:** A React-based MERN single-page application that allows Rocket Elevators employees to manage agents through full CRUD operations, protected by a login/logout system validated against MongoDB.
 - **Project Type:** MERN Full-Stack SPA (MongoDB, Express, React, Node.js). Internal admin panel. No public-facing pages.
 - **Client:** Rocket Elevators
 - **Developer Role:** Junior Developer at Genesis Solutions
-- **Module 8 Theme:** RE Admin → React-Bootstrap edition (sessions, notifications, modals, transactions).
 
 ---
 
-## 2. Goal and Scope
+## Goal and Scope
 
 ### Goal
-Extend the internal back-office tool with a card-based home page, global toast notifications, confirmation modals, a cookie-based session/validation system that replaces JWT, and a transactions page — all using React-Bootstrap components, without removing the existing Tailwind/Vite setup.
 
-### In Scope (Module 8 — build now)
-The seven Module 8 features, each with its own spec file:
+Build an internal back-office administration tool for Rocket Elevators employees to view, create, edit, and delete agents. Access must be restricted to registered users via a login page that validates credentials against MongoDB.
 
-1. **Home Page** — card-grid landing page after login.
-2. **Notifications** — global success/error toasts on every action.
-3. **Modals** — reusable confirmation modal before creative/destructive actions.
-4. **Session Process** — create a UUID session on login, store the token in a cookie, save the session in MongoDB with a 24h TTL.
-5. **Validation Process** — validate the session token on every navigation; redirect based on validity.
-6. **Header Bar** — React-Bootstrap navbar; move "Create Agent" into the Agents page; show the logged-in user's name.
-7. **Transaction Process** — list the last 10 transactions and submit new ones.
+The project is built by adapting the official MongoDB MERN Stack Tutorial template — not by cloning a repository.
 
-### Carried Over From Module 7 (already built — keep working)
-Login/logout, agent CRUD (create/read/update/delete), agent + user schemas, Rocket Elevators branding. These remain in the app and must keep working; M8 wires notifications/modals into them. Their original specs stay in [`./features/`](./features/).
+### In Scope (Build Now)
 
-### Out of Scope (do NOT build)
-- JWT for session auth — **retired this module** (remove `jsonwebtoken`, `Bearer` headers, `localStorage` token).
-- Mongoose (use the raw MongoDB Node.js driver).
-- TypeScript (JSX only).
-- User registration / user-management UI.
-- New auth providers, OAuth, password hashing.
-- Removing or replacing Tailwind (React-Bootstrap is **additive**).
-- Any extra feature not listed in this spec or a feature spec.
-- Report page / `GET /report-data` — **Extra Mile only**, attempt only after all main features are complete.
+- Login page with credential validation against MongoDB
+- Logout button in the navigation bar
+- Agent table (home page): Full Name, Region, Rating, Fee, Sales, Action columns
+- Create agent form (POST to MongoDB)
+- Edit agent form pre-populated with existing data (PATCH to MongoDB)
+- Delete agent with immediate table refresh (DELETE from MongoDB)
+- Unauthorized/error page when login fails
+- Rocket Elevators branding: logo, favicon, page title
+- Agent schema in MongoDB
+- User schema in MongoDB (users created manually — no user CRUD endpoints)
+- Login API endpoint
+- All agent CRUD API endpoints
+
+**M8 — In Scope (added):** the seven Module 8 features (each with its own feature spec):
+1. **Home Page (Card Grid)** — dashboard landing page with React Bootstrap cards for each admin section.
+2. **Toast Notifications** — global alert system (`AlertContext` + React Bootstrap `<Toast>`) for all user actions.
+3. **Confirmation Modals** — reusable `<ConfirmationModal>` before create, update, delete, and transaction submission.
+4. **Session Token (Cookie-Based)** — replace `localStorage` with cookie sessions via `react-use-cookie`, UUID tokens, MongoDB TTL (24h).
+5. **Token Validation** — `useTokenValidation` hook that runs on every page navigation and redirects unauthenticated users to login.
+6. **Header Bar Updates** — move "Create Agent" into the Agent Management component; show the logged-in user's full name in the navbar.
+7. **Transaction Feature** — a Transaction page with a table of the last 10 transactions and a form to submit new ones.
+
+### Out of Scope (Do NOT Build)
+
+- User registration or user management UI
+- Password hashing or JWT authentication (unless implementing the Extra Mile)
+- Public-facing website (unless implementing the Static Website Extra Mile)
+- TypeScript (JSX only)
+- Any CSS framework other than Tailwind CSS
+- Any database other than MongoDB Atlas
+- Any backend framework other than Express
+
+**M8 — Out of Scope (added):** JWT for session tokens (use UUID), `localStorage` for the token (use cookies), Mongoose, and the report page / `GET /report-data` unless doing the Extra Mile.
 
 ---
 
-## 3. Architectural Decisions (locked in)
+## Users and Use Cases
 
-1. **Auth = UUID cookie sessions; JWT retired.**
-   - `POST /users/login` validates credentials and returns the user (id + name). It no longer mints a token.
-   - The client then calls `POST /session/:user_id`, which generates a `uuidv4()` token, stores a session in the `sessions` collection, and returns the token.
-   - The token is stored in a **client-side cookie** via `react-use-cookie`.
-   - Protected API routes and every page navigation validate the token against the `sessions` collection.
-2. **React-Bootstrap is additive, not a rewrite.** Keep Vite + Tailwind. Use React-Bootstrap components for the new surfaces (Home cards, Navbar, Toasts, Modals, Transaction table/form). Bootstrap CSS is imported once in `client/src/main.jsx`.
-3. **New MongoDB collections** follow the existing per-resource database pattern (`client.db("agents")`, `client.db("users")`): add `sessionsDb = client.db("sessions")` and `transactionsDb = client.db("transactions")` exports in `connection.js`. Collections: `sessions` and `transactions`.
-4. **TTL on sessions:** create the index once at startup — `sessions.createIndex({ createdAt: 1 }, { expireAfterSeconds: 86400 })` (24h auto-expiry).
-5. **Agent full name on the transaction table = join on the frontend.** The transactions table maps `agent_id → "first_name last_name"` from the agents already fetched for the dropdown. No `$lookup`.
-6. **Token transport:** because the cookie is client-side, protected requests send the token in a way the middleware reads (query param or header), and `GET /validate_token` receives it as `?token=`. Be consistent everywhere.
+- **Rocket Elevators Employee (authenticated):** Can log in, view all agents, create a new agent, edit an existing agent, delete an agent, and log out.
+- **Unauthenticated visitor:** Lands on the login page. If credentials fail, they are redirected to the unauthorized page.
+
+**M8 (added):** the authenticated employee also lands on a **dashboard home page**, records and views **transactions**, sees their **first_name** in the navbar, and stays logged in for **24 hours** via a cookie session (no re-login each visit). Any page visited without a valid session token redirects to login.
 
 ---
 
-## 4. Tech Stack & Constraints
+## Feature Index
+
+Each feature has its own specification file. Always read both this file and the relevant feature file before implementing.
+
+- [`./features/schemas.feature.md`](./features/schemas.feature.md) — Agent and User MongoDB schemas
+- [`./features/company-info.feature.md`](./features/company-info.feature.md) — Branding: logo, favicon, page title, logo navigation
+- [`./features/crud-read.feature.md`](./features/crud-read.feature.md) — Home page agent table
+- [`./features/crud-delete.feature.md`](./features/crud-delete.feature.md) — Delete agent from table
+- [`./features/crud-create.feature.md`](./features/crud-create.feature.md) — Create new agent form
+- [`./features/crud-update.feature.md`](./features/crud-update.feature.md) — Edit existing agent form
+- [`./features/login-logout.feature.md`](./features/login-logout.feature.md) — Login page, logout button, unauthorized page
+
+**M8 feature specs (added):**
+- [`./features/home-page.feature.md`](./features/home-page.feature.md) — dashboard card grid
+- [`./features/notifications.feature.md`](./features/notifications.feature.md) — global toast notifications
+- [`./features/modals.feature.md`](./features/modals.feature.md) — confirmation modal
+- [`./features/session-process.feature.md`](./features/session-process.feature.md) — cookie UUID sessions + TTL
+- [`./features/validation-process.feature.md`](./features/validation-process.feature.md) — token validation + redirects
+- [`./features/header-bar.feature.md`](./features/header-bar.feature.md) — navbar updates
+- [`./features/transaction-process.feature.md`](./features/transaction-process.feature.md) — transactions list + form
+
+---
+
+## Pages / Screens / Routes
+
+### Frontend Routes (React Router)
+
+| Route | Component | Description |
+|-------|-----------|-------------|
+| `/login` | `Login` | Login form — entry point for all users |
+| `/` | `App > AgentList` (M7) → `App > Home` (M8) | M7: agent table. **M8: dashboard card grid** (default after login) |
+| `/agents` | `App > AgentList` | **M8:** agent table (moved off `/`); holds the "Create Agent" button |
+| `/transactions` | `App > Transactions` | **M8:** last 10 transactions + submit form |
+| `/create` | `App > AgentForm` | Form to create a new agent |
+| `/edit/:id` | `App > AgentForm` | Pre-populated form to edit an existing agent |
+| `/unauthorized` | `Unauthorized` | Error page shown when login credentials are invalid |
+
+### Backend API Endpoints (Express)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/agents` | Return all agents |
+| `GET` | `/agents/:id` | Return a single agent by ID |
+| `POST` | `/agents` | Create a new agent |
+| `PATCH` | `/agents/:id` | Update an existing agent |
+| `DELETE` | `/agents/:id` | Delete an agent |
+| `POST` | `/users/login` | Validate user credentials against MongoDB |
+| `POST` | `/session/:user_id` | **M8:** create a session, return the UUID token |
+| `GET` | `/validate_token?token=` | **M8:** validate a session token |
+| `GET` | `/transaction-data` | **M8:** return only the last 10 transactions |
+| `POST` | `/transaction` | **M8:** create a transaction `{ amount, agent_id }` (positive amounts only) |
+| `GET` | `/report-data` | **M8 (Extra Mile):** chart data |
+
+**M8 — exact response formats** (from the docebo assignment):
+- `POST /session/:user_id` → `{ status: "ok", data: { token: "xxx-ee-dd-fff" }, message: "session saved successfully" }`
+- `GET /validate_token?token=` → `{ status: "ok", data: { valid: boolean, user: { first_name, last_name, id } }, message: null }`
+
+---
+
+## Data and Models
+
+### Agent Collection (`agents`)
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `_id` | ObjectId | Auto-generated by MongoDB |
+| `first_name` | String | Required |
+| `last_name` | String | Required |
+| `email` | String | Required |
+| `region` | String | North, East, South, or West |
+| `rating` | Number | 0–100 |
+| `fee` | Number | Agent fee in dollars |
+| `sales` | Number | Number of sales, default 0 |
+
+### User Collection (`users`)
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `_id` | ObjectId | Auto-generated by MongoDB |
+| `first_name` | String | Required |
+| `last_name` | String | Required |
+| `email` | String | Required, used for login |
+| `password` | String | Required, plain text (no hashing unless Extra Mile) |
+
+> Users are created manually in MongoDB Atlas. There is no user registration UI or endpoint.
+
+### Session Collection (`sessions`) — M8
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `_id` | ObjectId | Auto-generated |
+| `session_token` | String | UUID, unique |
+| `User` | Object | `{ first_name, last_name, id }` — enough for `validate_token` to return |
+| `createdAt` | Date | TTL index expires the doc after 24 hours (`expireAfterSeconds: 86400`) |
+
+### Transaction Collection (`transactions`) — M8
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `_id` | ObjectId | Auto-generated |
+| `date` | Date | Set at insert time |
+| `amount` | Number | **Positive only** |
+| `agent_id` | String | References an agent; full name is joined on the frontend |
+
+---
+
+## Tech Stack and Tools
 
 ### Frontend
 - React 19 (JSX only — no TypeScript)
-- React Router v7 (`react-router-dom`)
-- **React-Bootstrap 2 + Bootstrap 5** (new UI surfaces)
-- **`react-use-cookie`** (session token cookie)
-- **`uuid`** (token generation, if generated client-side; tokens are generated server-side with `uuid` as well)
-- Tailwind CSS v3 (existing styling — kept)
-- Vite (build tool / dev server)
+- React Router v7 (client-side routing)
+- Tailwind CSS v3 (utility-first styling)
+- Vite (build tool and dev server)
+- **M8:** React Bootstrap + Bootstrap 5 (new UI surfaces), `react-use-cookie` (session cookie), `uuid` (session tokens)
 
 ### Backend
-- Node.js + Express 5
-- MongoDB Atlas + MongoDB Node.js Driver (no Mongoose)
-- `uuid` for session tokens
-- `cors`, `--env-file` for env loading
+- Node.js
+- Express 5
+
+### Database
+- MongoDB Atlas (cloud-hosted)
+- MongoDB Node.js Driver (no Mongoose)
+
+### Tools / Libraries
+- `cors` — allows the React app (port 5173) to talk to the Express server (port 5050)
+- `dotenv` / `--env-file` — loads environment variables from `config.env`
+- Postman — API testing, exported as `PostmanCollection.json`
+- **M8 constraints (from the business document):** React Bootstrap required; cookies via `react-use-cookie` (not `localStorage`); UUID tokens (not JWT); 24h TTL on the Session collection; toasts auto-hide after 5 seconds; transaction amounts positive only; AI specs (global + one per feature) written before coding.
 
 ### NOT Allowed
-- `jsonwebtoken` / JWT for sessions (removed this module)
-- `localStorage` for the auth token (use the cookie)
-- Mongoose, TypeScript, Axios (use native `fetch()`)
+- TypeScript
+- Mongoose (use the raw MongoDB Node.js driver)
+- Axios (use the native `fetch()` API)
+- Sass / Less / styled-components
+- Any CSS framework other than Tailwind CSS v3
 - Class-based React components
-- Any database other than MongoDB Atlas, any backend framework other than Express
+- **M8:** JWT for session tokens (use UUID instead); `localStorage` for the auth token (use cookies instead)
 
 ---
 
-## 5. Coding Standards & Conventions
+## Coding Standards and Conventions
 
-### Naming
+### Naming Conventions
+
 | Type | Convention | Example |
 |------|------------|---------|
-| JS variables / functions | camelCase | `showAlert`, `validateToken` |
-| React components | PascalCase | `Home`, `ConfirmationModal` |
-| Component files | PascalCase + `.jsx` | `Transactions.jsx` |
-| Hooks | camelCase `use*` + `.js` | `useTokenValidation.js` |
-| Non-component JS files | camelCase + `.js` | `connection.js`, `sessions.js` |
-| MongoDB collections | camelCase plural | `agents`, `sessions`, `transactions` |
+| JS variables and functions | camelCase | `deleteAgent`, `agentList` |
+| React components | PascalCase | `AgentList`, `Navbar` |
+| JSX component files | PascalCase + `.jsx` | `AgentList.jsx` |
+| Non-component JS files | camelCase + `.js` | `connection.js`, `agents.js` |
+| CSS classes (Tailwind) | kebab-case (Tailwind standard) | `bg-slate-100`, `text-sm` |
+| MongoDB collections | camelCase plural | `agents`, `users` |
 | Environment variables | UPPER_SNAKE_CASE | `ATLAS_URI`, `PORT` |
-| Git branches | `mod8/features/<feature-name>` | `mod8/features/transaction-process` |
 
-### Module system
-- **ES Modules only** (`import` / `export`). Never `require()` / `module.exports`. Both `server/` and `client/` use `"type": "module"`.
+### Module System
+- Use **ES Modules** exclusively: `import` / `export`
+- Never use `require()` or `module.exports`
+- Both `server/` and `client/` use `"type": "module"` in their `package.json`
 
-### Code style
-- All async work uses `async/await` with `try/catch`.
-- No `console.log()` left in committed code. No secrets committed.
-- Destructure `req.body` explicitly — never spread it into DB operations.
-- Every route handler returns a response in **all** code paths, with the **correct status code** (200/201 success, 400 bad input, 401 unauthorized, 404 not found — never a 500 for a validation problem).
-- New UI uses React-Bootstrap components; no inline styles.
+### Code Style
+- All async functions must use `async/await` with `try/catch`
+- No `console.log()` left in production code
+- No inline styles — use Tailwind classes only
+- Do not spread `req.body` directly into database operations — destructure explicitly
+- Every route handler must return a response in all code paths
+- **M8:** session/validation/report endpoints return the standard shape `{ status, data, message }` with proper status codes (200/201/400/401/404 — never 500 for a validation problem)
 
-### Standard API response shape (sessions / validation / report)
-```json
-{ "status": "ok", "data": { /* ... */ }, "message": "..." | null }
-```
-These exact shapes are graded — see §8.
+### API Base URLs
+- Backend API base: `http://localhost:5050`
+- Frontend dev server: `http://localhost:5173`
+- All `fetch()` calls in React must use the full base URL: `http://localhost:5050/agents` or `http://localhost:5050/users/login`
 
-### Git commit prefixes
-`feat:` · `fix:` · `docs:` · `refactor:` · `chore:`
+### Git Commit Conventions
+| Prefix | When to use |
+|--------|-------------|
+| `feat:` | New feature added |
+| `fix:` | Bug fix |
+| `docs:` | Documentation only |
+| `refactor:` | Code change that doesn't fix a bug or add a feature |
+| `chore:` | Build process, config, or tooling changes |
 
 ### Branching
-- `mod8/features/*` → `dev` → `main`. One branch per feature.
-- **No direct commits to `main`.** Final step only: merge `dev` → `main`. Only `main` is graded.
+- `feature/*` → `dev` → `main` (M7). **M8:** use `mod8/features/*` → `dev` → `main` (coach's naming).
+- No direct commits to `main` or `dev`
+- One branch per feature (matches the feature spec file names)
 
 ---
 
-## 6. Repository Structure
+## Repository Structure
 
 ```
-Module7&8/
-├── server/                              ← Express backend
-│   ├── server.js                        ← registers routes + requireSession middleware
-│   ├── config.env                       ← env vars (NOT committed)
-│   ├── seed.js                          ← seeds agents/users
+Module7/
+├── server/                        ← Express backend
+│   ├── server.js                  ← Entry point, registers middleware and routes
+│   ├── config.env                 ← Environment variables (not committed)
 │   ├── db/
-│   │   ├── connection.js                ← Mongo connection; exports agentsDb, usersDb,
-│   │   │                                   sessionsDb (NEW), transactionsDb (NEW)
-│   │   └── schemas/
-│   │       ├── agent.schema.js
-│   │       ├── user.schema.js
-│   │       ├── session.schema.js        ← NEW { session_token, user, createdAt }
-│   │       └── transaction.schema.js    ← NEW { date, amount, agent_id }
-│   ├── middleware/
-│   │   └── auth.js                      ← requireSession (replaces JWT requireAuth)
+│   │   └── connection.js          ← MongoDB Atlas connection, exports db
 │   └── routes/
-│       ├── agents.js                    ← agent CRUD (/agents)
-│       ├── users.js                     ← POST /users/login (no JWT)
-│       ├── sessions.js                  ← NEW POST /session/:user_id, GET /validate_token
-│       └── transactions.js              ← NEW GET /transaction-data, POST /transaction
+│       ├── agents.js              ← Agent CRUD endpoints (/agents)
+│       └── users.js               ← Login endpoint (/users/login)
 │
-├── client/                              ← React frontend
+├── client/                        ← React frontend
+│   ├── index.html                 ← Single HTML file, app mounts at #root
+│   ├── vite.config.js
+│   ├── tailwind.config.js
+│   ├── postcss.config.js
 │   └── src/
-│       ├── main.jsx                     ← Router + AlertProvider + Bootstrap CSS import
-│       ├── App.jsx                      ← Layout: Navbar + Outlet + useTokenValidation
-│       ├── index.css
-│       ├── context/
-│       │   └── AlertContext.jsx         ← NEW global toast provider (showAlert)
-│       ├── hooks/
-│       │   └── useTokenValidation.js    ← NEW validates token, gates navigation
+│       ├── main.jsx               ← Router setup, app entry point
+│       ├── App.jsx                ← Layout: Navbar + Outlet
+│       ├── index.css              ← Tailwind base imports
 │       └── components/
-│           ├── Navbar.jsx               ← RB Navbar; username shown; no Create Agent link
-│           ├── Home.jsx                 ← NEW card-grid landing page
-│           ├── AgentList.jsx            ← agent table + Create Agent button
-│           ├── AgentForm.jsx            ← create + edit agent (shared)
-│           ├── Transactions.jsx         ← NEW transaction table + form
-│           ├── ConfirmationModal.jsx    ← NEW reusable confirm modal
-│           ├── Login.jsx                ← validates creds, creates session, sets cookie
-│           └── Unauthorized.jsx
+│           ├── Navbar.jsx         ← Logo + logout/create nav links
+│           ├── AgentList.jsx     ← Agent table (home page)
+│           ├── AgentForm.jsx         ← Create + Edit form (shared)
+│           ├── Login.jsx          ← Login form
+│           └── Unauthorized.jsx   ← Error page for failed login
 │
 ├── ai/
-│   ├── ai-spec.md                       ← This file
-│   └── features/                        ← M7 + M8 feature specs
+│   ├── ai-spec.md                 ← This file
+│   └── features/                  ← One file per feature
+│
 ├── PostmanCollection.json
 ├── README.md
 ├── CONCEPTS.md
+├── Research.md
+├── CODEBASE.md
 └── LeetCode-Challenges/
 ```
 
-> Files marked **NEW** are created during Module 8.
+**M8 — new files (added):**
+- `server/db/schemas/session.schema.js`, `server/db/schemas/transaction.schema.js`
+- `server/routes/sessions.js` (`POST /session/:user_id`, `GET /validate_token`), `server/routes/transactions.js` (`GET /transaction-data`, `POST /transaction`)
+- `server/middleware/auth.js` → `requireSession` (replaces the JWT `requireAuth`)
+- `client/src/context/AlertContext.jsx`, `client/src/hooks/useTokenValidation.js`
+- `client/src/components/Home.jsx`, `Transactions.jsx`, `ConfirmationModal.jsx`
+- `connection.js` adds `sessionsDb` + `transactionsDb` exports; `main.jsx` adds the Bootstrap CSS import + `AlertProvider`
 
 ---
 
-## 7. Feature Index
+## Rules for the AI
 
-Always read this file **and** the relevant feature file before implementing.
-
-### Module 8 features
-- [`./features/home-page.feature.md`](./features/home-page.feature.md) — card-grid home page
-- [`./features/notifications.feature.md`](./features/notifications.feature.md) — global success/error toasts
-- [`./features/modals.feature.md`](./features/modals.feature.md) — reusable confirmation modal
-- [`./features/session-process.feature.md`](./features/session-process.feature.md) — UUID sessions, cookie, TTL
-- [`./features/validation-process.feature.md`](./features/validation-process.feature.md) — token validation + redirects
-- [`./features/header-bar.feature.md`](./features/header-bar.feature.md) — navbar refinements
-- [`./features/transaction-process.feature.md`](./features/transaction-process.feature.md) — transactions list + form
-
-### Module 7 features (carried over)
-- [`./features/schemas.feature.md`](./features/schemas.feature.md) · [`company-info`](./features/company-info.feature.md) · [`crud-read`](./features/crud-read.feature.md) · [`crud-create`](./features/crud-create.feature.md) · [`crud-update`](./features/crud-update.feature.md) · [`crud-delete`](./features/crud-delete.feature.md) · [`login-logout`](./features/login-logout.feature.md)
-
----
-
-## 8. Pages, Routes & API Endpoints
-
-### Frontend routes (React Router)
-| Route | Component | Description |
-|-------|-----------|-------------|
-| `/login` | `Login` | Login form — entry point; standalone (no Navbar) |
-| `/unauthorized` | `Unauthorized` | Shown on failed login |
-| `/` (index) | `App > Home` | **Default view after login** — card grid |
-| `/agents` | `App > AgentList` | Agent table + Create Agent button |
-| `/transactions` | `App > Transactions` | Transaction table + form |
-| `/create` | `App > AgentForm` | Create agent |
-| `/edit/:id` | `App > AgentForm` | Edit agent |
-
-All routes under `App` validate the session token on navigation.
-
-### Backend API endpoints (Express)
-| Method | Endpoint | Body / Params | Description |
-|--------|----------|---------------|-------------|
-| `POST` | `/users/login` | `{ email, password }` | Validate credentials; return user (no token) |
-| `POST` | `/session/:user_id` | — | Create session, return UUID token |
-| `GET` | `/validate_token` | `?token=` | Validate token against `sessions` |
-| `GET` | `/agents` | — | All agents *(protected)* |
-| `GET` | `/agents/:id` | — | One agent *(protected)* |
-| `POST` | `/agents` | agent fields | Create agent *(protected)* |
-| `PATCH` | `/agents/:id` | agent fields | Update agent *(protected)* |
-| `DELETE` | `/agents/:id` | — | Delete agent *(protected)* |
-| `GET` | `/transaction-data` | — | Last 10 transactions, newest first *(protected)* |
-| `POST` | `/transaction` | `{ amount, agent_id }` | Create transaction; amount must be positive *(protected)* |
-| `GET` | `/report-data` | — | *(Extra Mile)* chart data |
-
-### Exact response shapes (graded — match verbatim)
-**`POST /session/:user_id`**
-```json
-{ "status": "ok", "data": { "token": "<uuid>" }, "message": "session saved successfully" }
-```
-**`GET /validate_token?token=...`** — valid:
-```json
-{ "status": "ok", "data": { "valid": true, "user": { "first_name": "...", "last_name": "...", "id": "..." } }, "message": null }
-```
-invalid: `"valid": false`, `"user": null`.
-
-**`GET /transaction-data`** → array of the last 10 transaction objects, sorted most-recent-first.
-
-**`GET /report-data`** *(Extra Mile)*
-```json
-{ "status": "ok", "data": { "agent_bar_data": [], "transaction_line_data": [] }, "message": null }
-```
+- Use **JSX only** — no TypeScript, no `.ts` files
+- Use **Tailwind CSS** for all styling — no custom CSS files for new components
+- Use the **MongoDB Node.js driver** — do not introduce Mongoose
+- Use **React hooks** (`useState`, `useEffect`, `useParams`, `useNavigate`) — no class components
+- Use **`fetch()`** for all HTTP requests — do not introduce Axios
+- Do **not** add features not listed in this spec or a feature spec
+- Reuse existing files and components when possible
+- Keep code **junior-friendly** — clear variable names, no advanced patterns
+- All JSX component files must use the **`.jsx` extension**
+- Server runs on **port 5050**, client runs on **port 5173**
+- Agent fields are: `first_name`, `last_name`, `email`, `region`, `rating`, `fee`, `sales` — not `name`, `position`, `level` (the tutorial defaults)
+- The `agents` route and `agents` collection name from the tutorial are kept as-is unless a feature spec says otherwise
+- **M8:** use React Bootstrap for new UI (Tailwind stays for existing UI); use **UUID** tokens (not JWT) and **cookies** (not `localStorage`); return the exact documented response shapes for `/session` and `/validate_token`; every action toasts and every create/update/delete/submit confirms via a modal first
 
 ---
 
-## 9. Data & Models
-
-### `agents` collection (existing)
-`_id` · `first_name` · `last_name` · `email` · `region` (North/East/South/West) · `rating` (0–100) · `fee` (Number) · `sales` (Number, default 0)
-
-### `users` collection (existing)
-`_id` · `first_name` · `last_name` · `email` (login) · `password` (plain text — no hashing). Users are created manually; no registration UI.
-
-### `sessions` collection (NEW)
-| Field | Type | Notes |
-|-------|------|-------|
-| `_id` | ObjectId | Auto |
-| `session_token` | String | `uuidv4()`, unique |
-| `user` | Object | `{ id, first_name, last_name }` — enough for `validate_token` to return the user |
-| `createdAt` | Date | `new Date()`; TTL index expires the doc after 86400s (24h) |
-
-### `transactions` collection (NEW)
-| Field | Type | Notes |
-|-------|------|-------|
-| `_id` | ObjectId | Auto |
-| `date` | Date | `new Date()` at insert time |
-| `amount` | Number | **Positive only** (reject 0 / negative with 400) |
-| `agent_id` | String | References an agent's id; full name is joined on the frontend |
-
----
-
-## 10. Cross-Feature Rules (apply to every feature)
-
-1. **Notifications:** every user action shows a **success toast** on success and an **error toast** on failure — Login, Create Agent, Update Agent, Delete Agent, Submit Transaction. Use React-Bootstrap `Toast` (`bg="success"` green / `bg="danger"` red), `autohide`, `delay={5000}`. Toasts are driven by a global `AlertContext` (no prop-drilling).
-2. **Modals:** every **creative/destructive** action shows a **confirmation modal first** — Create Agent, Update Agent, Delete Agent, Submit Transaction. One reusable `ConfirmationModal` (body "Are you sure you want to continue?", buttons **Confirm / Back**).
-3. **Token validation on navigation:** every page under the `App` layout validates the cookie token via `GET /validate_token`. Invalid/missing → redirect to `/login`; valid → render and expose the user (navbar shows `first_name`). `Login` / `Unauthorized` stay outside the guarded layout.
-4. **Response shapes:** session/validation/report endpoints return the **exact** JSON in §8.
-5. **Consistency:** endpoint paths, env var names, and ports are identical across this spec, the feature specs, the README, the code, and Postman.
-6. **No** `console.log`, **no** committed secrets, **ES Modules** only, proper HTTP status codes everywhere.
-
----
-
-## 11. How to Run
+## How to Run / Test the Project
 
 ```bash
-# Terminal 1 — backend
+# Terminal 1 — Start the backend
 cd server
-npm run dev            # nodemon --env-file=config.env server.js   (port 5050)
+node --env-file=config.env server.js
 
-# Terminal 2 — frontend
+# Terminal 2 — Start the frontend
 cd client
-npm run dev            # Vite dev server                            (port 5173)
+npm run dev
 ```
-- Frontend: http://localhost:5173 · Backend API: http://localhost:5050
-- The `sessions` TTL index is created on server start.
 
-### Environment variables (`server/config.env`)
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:5050
+- Environment variables live in `server/config.env` (never commit this file)
+- **M8:** install client deps `npm install react-bootstrap bootstrap react-use-cookie uuid`; the `sessions` TTL index is created on server start
+
+### Environment Variables (`server/config.env`)
+
 ```
 ATLAS_URI=<your MongoDB Atlas connection string>
 PORT=5050
 ```
-> `JWT_SECRET` is **removed** this module (JWT retired). Do not leave a stale variable.
 
 ---
 
-## 12. Global Definition of Done
+## Definition of Done
 
-The module is complete when **all** of the following are true:
+The project is complete when all of the following are true:
 
-**Project setup**
-- [ ] Work done on `mod8/features/*` branches → `dev`; final `dev → main` is the only thing touching `main`; only `main` is in final graded state.
-- [ ] React-Bootstrap installed and its components actively used.
-- [ ] `PostmanCollection.json` (root) covers every endpoint, params pre-filled, runs top-to-bottom with zero edits.
-- [ ] `README.md` complete (title, description, tech stack, structure, setup, env vars, API docs, author) and consistent with the code.
-- [ ] `submission-summary.md` prepared (NOT committed).
+- [ ] Login page exists and validates credentials against MongoDB
+- [ ] Failed login redirects to the unauthorized page
+- [ ] Successful login navigates to the agent list
+- [ ] Logout button returns user to the login page
+- [ ] Home page displays agent table with columns: Full Name, Region, Rating, Fee, Sales, Action
+- [ ] Create agent form saves a new agent to MongoDB and it appears in the table
+- [ ] Edit agent form pre-populates with existing data and saves changes to MongoDB
+- [ ] Delete removes the agent from MongoDB and the table refreshes immediately
+- [ ] Rocket Elevators logo, favicon, and page title are applied
+- [ ] Clicking the logo navigates back to the agent list
+- [ ] Agent schema exists in MongoDB (`agents` or `agents` collection)
+- [ ] User schema exists in MongoDB (`users` collection)
+- [ ] All CRUD endpoints work end-to-end (verifiable in Postman)
+- [ ] Login endpoint works end-to-end (verifiable in Postman)
+- [ ] `PostmanCollection.json` exported and in root directory
+- [ ] `README.md` complete with all required sections
+- [ ] `CONCEPTS.md` lists 3 challenging concepts with explanations
+- [ ] All feature branches merged into `dev`, `dev` merged into `main`
+- [ ] Only `main` branch is in final state for grading
 
-**Specs**
-- [ ] This global spec contains: project identity + scope, architecture/repo structure, allowed tech & constraints, coding standards, global Definition of Done + cross-feature rules.
-- [ ] All 7 M8 feature specs exist in `./ai/features/` with the exact filenames.
+### M8 — Cross-Feature Rules & Definition of Done (added)
 
-**Home page**
-- [ ] Home is the default view after login and shows a grid of cards.
-- [ ] Agent Management card navigates to the agent table; Transaction card navigates to the transaction page.
+**Cross-feature rules:**
+- Every user action shows a toast — **green success / red error, auto-hide after 5 seconds** (Login, Create/Update/Delete Agent, Submit Transaction).
+- Every create/update/delete/transaction-submit is preceded by a **confirmation modal** ("Are you sure you want to continue?" → Confirm / Back).
+- Every page checks the cookie `session_token` on navigation; no/invalid token → redirect to `/login`; valid → continue and show the user's `first_name`.
 
-**Notifications** — success + error toasts on Login, Create/Update/Delete Agent, Submit Transaction (5s autohide, green/red).
-
-**Modals** — confirmation modal before Create/Update/Delete Agent and Submit Transaction.
-
-**Session process**
-- [ ] On login success a session is created via `POST /session/:user_id` and stored in `sessions` with all required fields.
-- [ ] Each session has a unique, valid UUID token.
-- [ ] `sessions` has a TTL index (`expireAfterSeconds: 86400`).
-- [ ] `POST /session/:user_id` returns the exact response shape.
-- [ ] The token is stored in a cookie after creation.
-- [ ] Every page checks for a valid `session_token`.
-
-**Validation process**
-- [ ] Validation checks MongoDB for the session and token validity.
-- [ ] `GET /validate_token` receives the token as a query param and returns the exact response shape.
-- [ ] No/invalid token → redirect to login; valid token → redirect to the admin home page.
-
-**Header bar**
-- [ ] "Create Agent" moved out of the navbar into the Agent Management page.
-- [ ] The logged-in user's name appears in the navbar.
-
-**Transaction process**
-- [ ] `GET /transaction-data` returns the last 10 transactions in the correct format, sorted newest-first.
-- [ ] `POST /transaction` saves `{ date, amount, agent_id }`; accepts `amount` + `agent_id`; rejects non-positive amounts.
-- [ ] Transaction page shows the last 10 in a table with columns **date · amount · agent full name**.
-- [ ] Amount input accepts positive numbers only; agent dropdown lists agents by name and ID.
-
-**Technical interview**
-- [ ] `CONCEPTS.md` lists 3 challenging M8 concepts (name, purpose, why challenging, file+line).
-- [ ] LeetCode screenshots in `./LeetCode-Challenges/`.
-- [ ] Concept, problem-solving, and technical-demo videos recorded (unlisted) and linked in the submission summary.
-
-**Cleanup**
-- [ ] No `jsonwebtoken` import or `JWT_SECRET` left; no `localStorage` auth token anywhere; no `console.log`.
-
----
-
-## 13. Rules for the AI
-
-- JSX only; React-Bootstrap for new UI; Tailwind kept for existing UI.
-- MongoDB Node.js driver only (no Mongoose); `fetch()` only (no Axios).
-- React hooks only (no class components).
-- Do **not** add features outside this spec or a feature spec; reuse existing files/components.
-- Keep code junior-friendly: clear names, no advanced patterns.
-- Server runs on **5050**, client on **5173**.
-- Agent fields are `first_name, last_name, email, region, rating, fee, sales`.
-- Session/validation/report endpoints must return the **exact** documented JSON.
-- Never commit secrets or `config.env`.
+**M8 checklist:**
+- [ ] Home is the default view after login and shows a card grid (Agent Management + Transactions cards).
+- [ ] Toasts on all 5 actions; confirmation modal on all 4 create/update/delete/submit actions.
+- [ ] Login creates a session via `POST /session/:user_id`; token stored in a cookie; `sessions` has a 24h TTL index.
+- [ ] `GET /validate_token` validates the token and returns the exact shape; redirects work (invalid → login, valid → home).
+- [ ] "Create Agent" lives on the Agents page (not the navbar); navbar shows the user's first name.
+- [ ] Transactions: last 10 newest-first; columns date · amount · agent full name; amount positive-only; agent dropdown shows id + full name.
+- [ ] `/session`, `/validate_token`, `/transaction-data`, `/transaction` work in Postman.
+- [ ] No `jsonwebtoken` / `JWT_SECRET`, no `localStorage` token, no `console.log` left.
