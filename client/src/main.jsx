@@ -20,6 +20,9 @@ import AgentForm from "./components/AgentForm";
 import AgentList from "./components/AgentList";
 import Login from "./components/Login";
 import Unauthorized from "./components/Unauthorized";
+
+// Bootstrap CSS — imported once here, before index.css so Tailwind/custom styles can override it.
+import "bootstrap/dist/css/bootstrap.min.css";
 import "./index.css";
 
 const router = createBrowserRouter([
