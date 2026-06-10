@@ -94,7 +94,7 @@ GET /validate_token?token=<uuid>
 | Field | Type | Notes |
 |-------|------|-------|
 | `session_token` | String | UUID v4 generated at login |
-| `User` | ObjectId | Reference to the logged-in user |
+| `User` | Object | `{ first_name, last_name, id }` — embedded at session creation time |
 | `createdAt` | Date | Default: `new Date()` — TTL index targets this field |
 
 TTL index: `{ createdAt: 1 }`, `expireAfterSeconds: 86400`
@@ -130,6 +130,6 @@ TTL index: `{ createdAt: 1 }`, `expireAfterSeconds: 86400`
 
 - The `useCookie` hook from `react-use-cookie` returns `[cookieValue, setCookie, deleteCookie]`. Call `setCookie(token)` after the session POST succeeds.
 - The session POST needs the user's `id` from the login response — check the existing login endpoint to confirm the field name before writing the frontend call.
-- `GET /validate_token` must populate the `User` field to return `first_name`, `last_name`, and `id`.
+- `GET /validate_token` reads `user` directly from the stored session document — no populate needed since `User` is embedded as `{ first_name, last_name, id }` at creation time.
 - `useTokenValidation` should call `GET /validate_token` with the cookie value inside a `useEffect`. If the response returns `valid: false` or the cookie is missing, call `navigate("/login")`.
 - **Rework flag:** `AgentList.jsx` and `AgentForm.jsx` still send `localStorage.getItem("token")` as a JWT auth header. Once session-based auth replaces JWT entirely, those headers will need updating. Flag it when encountered but do not refactor out of scope.
