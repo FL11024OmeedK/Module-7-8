@@ -1,0 +1,291 @@
+USING SPEC DOCS THE RIGHT WAY (AI-NATIVE WORKFLOW)
+
+The Biggest Mistake Junior Developers Make
+The first step of a project is NOT coding.
+The first step is NOT creating the specification document.
+
+
+The first step is:
+
+
+:book: Read the Entire Project Documentation
+Before touching code, before opening AI, before generating anything, you must understand:
+What the project is
+What the client needs
+What the business goals are
+What features already exist
+What your role is
+What success looks like
+
+A developer who starts coding too quickly usually creates problems later.
+
+An AI-native developer first builds understanding.
+
+
+
+:brain: Critical Thinking Starts Here
+Once you finish reading the documentation, ask yourself:
+Do I fully understand the project?
+Do I understand the client requirements?
+Are there ambiguities?
+Is information missing?
+Do I have questions for the client?
+Do I have questions for my manager?
+Do I understand the workflow from now until project completion?
+
+This phase is extremely important.
+
+Good developers do not blindly execute tasks.
+
+They analyze.
+ They question.
+ They clarify.
+
+
+
+:mag: Research Before Implementation
+If you do not have all the answers yet, this is the moment to research.
+
+Use:
+AI tools
+Official documentation
+Internal company documentation
+Client documentation
+Internet resources
+Existing project examples
+
+The goal is not only to answer questions.
+
+The goal is to confirm that you truly understand the project before implementation starts.
+
+
+
+:warning: Important Parenthesis — Existing Projects
+If you enter a project that already exists, your first responsibility is understanding the current codebase.
+
+That means:
+
+:open_file_folder: Read the Project File by File
+
+You must explore:
+The project structure
+Important files
+Existing architecture
+Naming conventions
+Existing workflows
+Existing logic
+Existing patterns
+
+Ask yourself constantly:
+Why does this file exist?
+What is its purpose?
+How does it interact with the rest of the project?
+Do I understand the code inside it?
+
+Some files are less important.
+
+Others are critical.
+
+You need to identify the difference.
+
+If you do not understand something:
+Stop
+Research
+Ask AI
+Read official documentation
+Learn the concept before continuing
+
+Never work blindly inside an existing project.
+
+
+
+:memo: Step 1 — Understand the Feature Requirements
+Once the project itself is understood, focus on the feature you must implement.
+
+Break down:
+The requirements
+The expected behavior
+The business logic
+The user flow
+The edge cases
+The technical impact
+
+Only when everything is clear should you move to the next step.
+
+
+
+:page_facing_up: Step 2 — Create the Specification Document
+Now you can create the specification document.
+
+The specification document should contain:
+Requirements
+Workflow
+Logic
+Technical details
+Structure
+Expected behaviors
+Edge cases
+Constraints
+Questions and answers
+Notes for implementation
+
+When the document is finished:
+
+
+Read It Again
+
+Review everything carefully.
+
+Ask yourself:
+Is information missing?
+Is the logic clear?
+Would another developer understand this?
+Would AI understand this correctly?
+Do I have enough detail to implement successfully?
+
+The specification document is your foundation.
+
+A weak specification creates weak implementation.
+
+
+
+:robot_face: Step 3 — Use AI to Implement the Feature
+Now you can ask AI to generate the feature using your specification document.
+
+But this is where many developers fail.
+
+They assume:
+
+“AI generated it, so it must be correct.”
+
+This is a dangerous mindset.
+
+
+
+:rotating_light: Never Trust AI Blindly
+When AI finishes generating code:
+
+READ EVERYTHING
+
+Line by line.
+
+File by file.
+
+Function by function.
+
+Ask yourself constantly:
+Do I understand this line?
+Do I understand this function?
+Do I understand this structure?
+Do I understand why AI generated this?
+Do I understand how this works?
+
+If the answer is NO:
+
+STOP
+
+Do not continue coding.
+
+Do not move to the next feature.
+
+You must first:
+Research
+Learn
+Ask questions
+Read documentation
+Use AI to explain concepts
+Understand the implementation
+
+AI-native development does NOT mean:
+
+“AI writes everything for me.”
+
+AI-native development means:
+
+“I use AI to accelerate implementation while maintaining full understanding and control.”
+
+
+
+:test_tube: Step 4 — Test Everything
+Once you understand the implementation:
+
+TEST
+
+You need to verify:
+Does the feature work?
+Are there bugs?
+Are there edge case failures?
+Is the behavior correct?
+Does it break anything else?
+Does it match the requirements?
+
+Testing creates feedback.
+
+Feedback creates improvement.
+
+
+
+:repeat: Step 5 — Iterate Like TDD
+
+If problems appear:
+Go back to the specification document
+Update the specification
+Clarify the missing logic
+Refactor the requirements
+Ask AI to update/fix the implementation
+Test again
+
+Repeat this cycle until the feature is stable.
+
+This process is similar to TDD thinking:
+Refine
+Implement
+Test
+Fix
+Repeat
+
+
+
+:white_check_mark: Step 6 — Move to the Next Feature
+
+Only after:
+Understanding the code
+Validating the implementation
+Fixing issues
+Completing testing
+
+…should you move to the next feature.
+
+Then repeat the same workflow:
+Understand requirements
+Create specification
+Use AI for implementation
+Read all generated code
+Understand everything
+Test
+Refactor specification
+Fix and improve
+Validate
+Move on
+
+
+
+:dart: Final Message
+Rushing a project without understanding the code creates future problems.
+
+When questions appear later, lack of understanding creates stress, confusion, and dependency.
+
+An AI-native developer does not rush blindly.
+
+They:
+Prepare knowledge
+Understand the project
+Think critically
+Use AI strategically
+Validate carefully
+Learn continuously
+Implement with intention
+
+Understand first.
+Implement second.
+Move forward with confidence.
