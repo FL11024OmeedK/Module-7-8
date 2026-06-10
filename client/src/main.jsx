@@ -5,7 +5,9 @@
 // Route structure:
 //   /login          → Login page (standalone, no Navbar)
 //   /unauthorized   → Unauthorized page (standalone, no Navbar)
-//   /               → App layout (Navbar + agent list)
+//   /               → App layout (Navbar + dashboard home page)   [M8]
+//   /agents         → App layout (Navbar + agent table)           [M8]
+//   /transactions   → App layout (Navbar + transactions page)     [M8]
 //   /create         → App layout (Navbar + create form)
 //   /edit/:id       → App layout (Navbar + edit form)
 
@@ -18,6 +20,7 @@ import {
 import App from "./App";
 import AgentForm from "./components/AgentForm";
 import AgentList from "./components/AgentList";
+import HomePage from "./components/HomePage";
 import Login from "./components/Login";
 import Unauthorized from "./components/Unauthorized";
 
@@ -35,7 +38,9 @@ const router = createBrowserRouter([
     path: "/",
     element: <App />,
     children: [
-      { index: true, element: <AgentList /> },
+      { index: true, element: <HomePage /> },
+      { path: "agents", element: <AgentList /> },
+      { path: "transactions", element: <div className="mt-4"><h2>Transactions</h2><p>Coming in Feature 7.</p></div> },
       { path: "create", element: <AgentForm /> },
       { path: "edit/:id", element: <AgentForm /> },
     ],
