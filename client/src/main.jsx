@@ -22,6 +22,7 @@ import AgentForm from "./components/AgentForm";
 import AgentList from "./components/AgentList";
 import HomePage from "./components/HomePage";
 import Login from "./components/Login";
+import Transactions from "./components/Transactions";
 import Unauthorized from "./components/Unauthorized";
 import { AlertProvider } from "./context/AlertContext";
 
@@ -41,7 +42,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: "agents", element: <AgentList /> },
-      { path: "transactions", element: <div className="mt-4"><h2>Transactions</h2><p>Coming in Feature 7.</p></div> },
+      { path: "transactions", element: <Transactions /> },
       { path: "create", element: <AgentForm /> },
       { path: "edit/:id", element: <AgentForm /> },
     ],

@@ -31,3 +31,6 @@ export const usersDb = client.db("users");
 
 // sessions database — stores UUID session tokens with a 24h TTL
 export const sessionsDb = client.db("sessions");
+
+// transactions database — stores transaction records { date, amount, agent_id }
+export const transactionsDb = client.db("transactions");

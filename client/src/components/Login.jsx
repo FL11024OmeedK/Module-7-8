@@ -48,7 +48,9 @@ export default function Login() {
     });
 
     if (response.ok) {
-      const { user } = await response.json();
+      const { token, user } = await response.json();
+      // Persist JWT so /agents (M7 JWT-protected route) stays authorized after login.
+      localStorage.setItem("token", token);
 
       // Create a session in MongoDB and get back a UUID token.
       const sessionRes = await fetch(`http://localhost:5050/session/${user._id}`, {

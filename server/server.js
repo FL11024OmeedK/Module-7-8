@@ -6,6 +6,7 @@ import cors from "cors";
 import agents from "./routes/agents.js";
 import users from "./routes/users.js";
 import session from "./routes/session.js";
+import transactions from "./routes/transactions.js";
 import { requireAuth } from "./middleware/auth.js";
 import { sessionsDb } from "./db/connection.js";
 
@@ -21,6 +22,8 @@ app.use("/agents", requireAuth, agents); // Agent CRUD endpoints — protected b
 app.use("/users", users);                // User login endpoint.
 app.use("/session", session);            // POST /session/:user_id — create session.
 app.use("/validate_token", session);     // GET /validate_token?token= — validate session.
+app.use("/transaction-data", transactions); // GET /transaction-data — last 10 transactions.
+app.use("/transaction", transactions);      // POST /transaction — save new transaction.
 
 // Create TTL index on sessions.createdAt so MongoDB auto-expires sessions after 24 hours.
 // createIndex is idempotent — safe to call on every server start.
