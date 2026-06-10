@@ -4,7 +4,7 @@
 // It collects email and password, sends them to the backend for validation,
 // and navigates the user based on whether the login succeeds or fails.
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useCookiePkg from "react-use-cookie";
 const useCookie = useCookiePkg.default ?? useCookiePkg;
@@ -19,7 +19,16 @@ export default function Login() {
   const navigate = useNavigate();
   const { showAlert } = useAlert();
   // useCookie returns [value, setValue, deleteValue] for the named cookie.
-  const [, setSessionToken] = useCookie("session_token", "");
+  const [sessionToken, setSessionToken] = useCookie("session_token", "");
+
+  // If the user already has a valid session, skip the login page and go straight home.
+  useEffect(() => {
+    if (!sessionToken) return;
+    fetch(`http://localhost:5050/validate_token?token=${sessionToken}`)
+      .then((res) => res.json())
+      .then(({ data }) => { if (data.valid) navigate("/"); })
+      .catch(() => {});
+  }, [sessionToken, navigate]);
 
   // updateForm merges a partial update into the form state.
   // Same pattern used in AgentForm.jsx — keeps all fields in one state object.
