@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAlert } from "../context/AlertContext";
+import ConfirmationModal from "./ConfirmationModal";
 
 // AgentRow renders a single agent as a table row.
 const AgentRow = (props) => (
@@ -32,9 +33,7 @@ const AgentRow = (props) => (
           className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-slate-100 hover:text-accent-foreground h-9 rounded-md px-3"
           color="red"
           type="button"
-          onClick={() => {
-            props.deleteAgent(props.agent._id);
-          }}
+          onClick={() => props.requestDelete(props.agent._id)}
         >
           Delete
         </button>
@@ -47,6 +46,7 @@ const AgentRow = (props) => (
 
 export default function AgentList() {
   const [agents, setAgents] = useState([]);
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
   const { showAlert } = useAlert();
   console.log(localStorage.getItem("token"));
   // This method fetches the agents from the database.
@@ -89,7 +89,7 @@ export default function AgentList() {
       return (
         <AgentRow
           agent={agent}
-          deleteAgent={() => deleteAgent(agent._id)}
+          requestDelete={(id) => setPendingDeleteId(id)}
           key={agent._id}
         />
       );
@@ -99,6 +99,12 @@ export default function AgentList() {
   // This following section will display the table with the agents.
   return (
     <>
+      <ConfirmationModal
+        show={pendingDeleteId !== null}
+        message="Are you sure you want to delete this agent?"
+        onConfirm={() => { deleteAgent(pendingDeleteId); setPendingDeleteId(null); }}
+        onCancel={() => setPendingDeleteId(null)}
+      />
       <h3 className="text-lg font-semibold p-4">Agents</h3>
       <div className="border rounded-lg overflow-hidden">
         <div className="relative w-full overflow-auto">

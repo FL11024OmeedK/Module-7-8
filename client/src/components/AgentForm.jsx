@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 // useParams reads URL values like :id; useNavigate sends the user to another route.
 import { useParams, useNavigate } from "react-router-dom";
 import { useAlert } from "../context/AlertContext";
+import ConfirmationModal from "./ConfirmationModal";
 
 export default function AgentForm() {
   // useState returns two things: the current value and a function to update it.
@@ -25,6 +26,7 @@ export default function AgentForm() {
   // useNavigate gives us a function that can move the user to another page.
   const navigate = useNavigate();
   const { showAlert } = useAlert();
+  const [showModal, setShowModal] = useState(false);
 
   // useEffect runs after the component loads and again when params.id or navigate changes.
   useEffect(() => {
@@ -64,9 +66,14 @@ export default function AgentForm() {
   }
 
   // This function will handle the submission.
-  async function onSubmit(e) {
-    // preventDefault stops the browser from refreshing the page on form submit.
+  // onSubmit opens the confirmation modal; handleConfirm fires the actual fetch.
+  function onSubmit(e) {
     e.preventDefault();
+    setShowModal(true);
+  }
+
+  async function handleConfirm() {
+    setShowModal(false);
     const person = { ...form };
     try {
       let response;
@@ -110,6 +117,12 @@ export default function AgentForm() {
   // This following section will display the form that takes the input from the user.
   return (
     <>
+      <ConfirmationModal
+        show={showModal}
+        message="Are you sure you want to continue?"
+        onConfirm={handleConfirm}
+        onCancel={() => setShowModal(false)}
+      />
       <h3 className="text-lg font-semibold p-4">Create/Update Agent</h3>
       <form
         onSubmit={onSubmit}
