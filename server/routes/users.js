@@ -34,7 +34,11 @@ router.post("/login", async (req, res) => {
       { expiresIn: "24h" }
     );
 
-    res.status(200).json({ token });
+    // Return the token and the user info the frontend needs to create a session.
+    res.status(200).json({
+      token,
+      user: { _id: user._id, first_name: user.first_name, last_name: user.last_name },
+    });
 
   } catch (err) {
     res.status(500).send("Error during login");

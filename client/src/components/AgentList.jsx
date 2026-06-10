@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAlert } from "../context/AlertContext";
 import ConfirmationModal from "./ConfirmationModal";
+import useTokenValidation from "../hooks/useTokenValidation";
 
 // AgentRow renders a single agent as a table row.
 const AgentRow = (props) => (
@@ -48,6 +49,7 @@ export default function AgentList() {
   const [agents, setAgents] = useState([]);
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
   const { showAlert } = useAlert();
+  useTokenValidation();
   console.log(localStorage.getItem("token"));
   // This method fetches the agents from the database.
   useEffect(() => {
