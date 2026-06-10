@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useAlert } from "../context/AlertContext";
 
 // AgentRow renders a single agent as a table row.
 const AgentRow = (props) => (
@@ -46,6 +47,7 @@ const AgentRow = (props) => (
 
 export default function AgentList() {
   const [agents, setAgents] = useState([]);
+  const { showAlert } = useAlert();
   console.log(localStorage.getItem("token"));
   // This method fetches the agents from the database.
   useEffect(() => {
@@ -67,12 +69,18 @@ export default function AgentList() {
 
   // This method will delete an agent
   async function deleteAgent(id) {
-    await fetch(`http://localhost:5050/agents/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    });
-    const updatedAgents = agents.filter((el) => el._id !== id);
-    setAgents(updatedAgents);
+    try {
+      const response = await fetch(`http://localhost:5050/agents/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      if (!response.ok) throw new Error(response.statusText);
+      const updatedAgents = agents.filter((el) => el._id !== id);
+      setAgents(updatedAgents);
+      showAlert("Agent deleted successfully.", "success");
+    } catch {
+      showAlert("Failed to delete agent.", "danger");
+    }
   }
 
   // This method will map out the agents on the table

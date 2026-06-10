@@ -6,6 +6,8 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import AlertToast from "./AlertToast";
+import { useAlert } from "../context/AlertContext";
 
 export default function Login() {
   // Form state holds the two fields the user types into.
@@ -13,6 +15,7 @@ export default function Login() {
 
   // useNavigate lets us programmatically redirect the user after login.
   const navigate = useNavigate();
+  const { showAlert } = useAlert();
 
   // updateForm merges a partial update into the form state.
   // Same pattern used in AgentForm.jsx — keeps all fields in one state object.
@@ -36,12 +39,13 @@ export default function Login() {
       localStorage.setItem("token", token);
       navigate("/");
     } else {
-      navigate("/unauthorized");
+      showAlert("Invalid email or password.", "danger");
     }
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center">
+      <AlertToast />
       <div className="w-full max-w-md border rounded-lg p-8">
 
         {/* Rocket Elevators logo at the top of the login box */}

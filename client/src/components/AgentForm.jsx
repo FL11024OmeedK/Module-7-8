@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 // useParams and useNavigate are built-in React Router Hooks.
 // useParams reads URL values like :id; useNavigate sends the user to another route.
 import { useParams, useNavigate } from "react-router-dom";
+import { useAlert } from "../context/AlertContext";
 
 export default function AgentForm() {
   // useState returns two things: the current value and a function to update it.
@@ -23,6 +24,7 @@ export default function AgentForm() {
   const params = useParams();
   // useNavigate gives us a function that can move the user to another page.
   const navigate = useNavigate();
+  const { showAlert } = useAlert();
 
   // useEffect runs after the component loads and again when params.id or navigate changes.
   useEffect(() => {
@@ -95,8 +97,10 @@ export default function AgentForm() {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+      showAlert(isNew ? "Agent created successfully." : "Agent updated successfully.", "success");
     } catch (error) {
       console.error('A problem occurred with your fetch operation: ', error);
+      showAlert(isNew ? "Failed to create agent." : "Failed to update agent.", "danger");
     } finally {
       setForm({ first_name: "", last_name: "", email: "", region: "", rating: "", fee: "" });
       navigate("/");

@@ -23,6 +23,7 @@ import AgentList from "./components/AgentList";
 import HomePage from "./components/HomePage";
 import Login from "./components/Login";
 import Unauthorized from "./components/Unauthorized";
+import { AlertProvider } from "./context/AlertContext";
 
 // Bootstrap CSS — imported once here, before index.css so Tailwind/custom styles can override it.
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -51,7 +52,9 @@ const router = createBrowserRouter([
 ReactDOM.createRoot(document.getElementById("root")).render(
   // StrictMode helps catch React problems during development.
   <React.StrictMode>
-    {/* RouterProvider renders the correct page based on the current URL. */}
-    <RouterProvider router={router} />
+    <AlertProvider>
+      {/* RouterProvider renders the correct page based on the current URL. */}
+      <RouterProvider router={router} />
+    </AlertProvider>
   </React.StrictMode>
 );
