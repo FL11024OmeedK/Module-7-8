@@ -6,7 +6,8 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import useCookie from "react-use-cookie";
+import useCookiePkg from "react-use-cookie";
+const useCookie = useCookiePkg.default ?? useCookiePkg;
 import AlertToast from "./AlertToast";
 import { useAlert } from "../context/AlertContext";
 

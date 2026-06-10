@@ -5,7 +5,8 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import useCookie from "react-use-cookie";
+import useCookiePkg from "react-use-cookie";
+const useCookie = useCookiePkg.default ?? useCookiePkg;
 
 export default function useTokenValidation() {
   const navigate = useNavigate();
