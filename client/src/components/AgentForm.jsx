@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAlert } from "../context/AlertContext";
 import ConfirmationModal from "./ConfirmationModal";
+import useTokenValidation from "../hooks/useTokenValidation";
 
 export default function AgentForm() {
   // useState returns two things: the current value and a function to update it.
@@ -27,6 +28,7 @@ export default function AgentForm() {
   const navigate = useNavigate();
   const { showAlert } = useAlert();
   const [showModal, setShowModal] = useState(false);
+  useTokenValidation();
 
   // useEffect runs after the component loads and again when params.id or navigate changes.
   useEffect(() => {

@@ -5,7 +5,9 @@ import cors from "cors";
 // Route files — each file handles a different resource.
 import agents from "./routes/agents.js";
 import users from "./routes/users.js";
+import session from "./routes/session.js";
 import { requireAuth } from "./middleware/auth.js";
+import { sessionsDb } from "./db/connection.js";
 
 const PORT = process.env.PORT || 5050;
 const app = express();
@@ -16,7 +18,16 @@ app.use(express.json()); // Parses JSON request bodies so req.body works.
 
 // Routes — each path is handled by its own router file.
 app.use("/agents", requireAuth, agents); // Agent CRUD endpoints — protected by JWT.
-app.use("/users", users);    // User login endpoint.
+app.use("/users", users);                // User login endpoint.
+app.use("/session", session);            // POST /session/:user_id — create session.
+app.use("/validate_token", session);     // GET /validate_token?token= — validate session.
+
+// Create TTL index on sessions.createdAt so MongoDB auto-expires sessions after 24 hours.
+// createIndex is idempotent — safe to call on every server start.
+sessionsDb.collection("sessions").createIndex(
+  { createdAt: 1 },
+  { expireAfterSeconds: 86400 }
+);
 
 // start the Express server
 app.listen(PORT, () => {
