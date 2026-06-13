@@ -22,7 +22,9 @@ import AgentForm from "./components/AgentForm";
 import AgentList from "./components/AgentList";
 import HomePage from "./components/HomePage";
 import Login from "./components/Login";
+import Transactions from "./components/Transactions";
 import Unauthorized from "./components/Unauthorized";
+import { AlertProvider } from "./context/AlertContext";
 
 // Bootstrap CSS — imported once here, before index.css so Tailwind/custom styles can override it.
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -40,7 +42,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: "agents", element: <AgentList /> },
-      { path: "transactions", element: <div className="mt-4"><h2>Transactions</h2><p>Coming in Feature 7.</p></div> },
+      { path: "transactions", element: <Transactions /> },
       { path: "create", element: <AgentForm /> },
       { path: "edit/:id", element: <AgentForm /> },
     ],
@@ -50,8 +52,11 @@ const router = createBrowserRouter([
 // Finds the <div id="root"></div> from index.html and tells React to control it.
 ReactDOM.createRoot(document.getElementById("root")).render(
   // StrictMode helps catch React problems during development.
+  // AlertProvider wraps the entire app so any component can trigger a toast notification.
   <React.StrictMode>
-    {/* RouterProvider renders the correct page based on the current URL. */}
-    <RouterProvider router={router} />
+    <AlertProvider>
+      {/* RouterProvider renders the correct page based on the current URL. */}
+      <RouterProvider router={router} />
+    </AlertProvider>
   </React.StrictMode>
 );

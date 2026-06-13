@@ -4,8 +4,12 @@
 // It collects email and password, sends them to the backend for validation,
 // and navigates the user based on whether the login succeeds or fails.
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import useCookiePkg from "react-use-cookie";
+const useCookie = useCookiePkg.default ?? useCookiePkg;
+import AlertToast from "./AlertToast";
+import { useAlert } from "../context/AlertContext";
 
 export default function Login() {
   // Form state holds the two fields the user types into.
@@ -13,6 +17,18 @@ export default function Login() {
 
   // useNavigate lets us programmatically redirect the user after login.
   const navigate = useNavigate();
+  const { showAlert } = useAlert();
+  // useCookie returns [value, setValue, deleteValue] for the named cookie.
+  const [sessionToken, setSessionToken] = useCookie("session_token", "");
+
+  // If the user already has a valid session, skip the login page and go straight home.
+  useEffect(() => {
+    if (!sessionToken) return;
+    fetch(`http://localhost:5050/validate_token?token=${sessionToken}`)
+      .then((res) => res.json())
+      .then(({ data }) => { if (data.valid) navigate("/"); })
+      .catch(() => {});
+  }, [sessionToken, navigate]);
 
   // updateForm merges a partial update into the form state.
   // Same pattern used in AgentForm.jsx — keeps all fields in one state object.
@@ -32,16 +48,30 @@ export default function Login() {
     });
 
     if (response.ok) {
-      const { token } = await response.json();
+      const { token, user } = await response.json();
+      // Persist JWT so /agents (M7 JWT-protected route) stays authorized after login.
       localStorage.setItem("token", token);
+
+      // Create a session in MongoDB and get back a UUID token.
+      const sessionRes = await fetch(`http://localhost:5050/session/${user._id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ first_name: user.first_name, last_name: user.last_name }),
+      });
+      const sessionData = await sessionRes.json();
+
+      // Store the UUID token in a cookie — expires with the browser session by default.
+      // MongoDB TTL enforces the 24h server-side expiry.
+      setSessionToken(sessionData.data.token);
       navigate("/");
     } else {
-      navigate("/unauthorized");
+      showAlert("Invalid email or password.", "danger");
     }
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center">
+      <AlertToast />
       <div className="w-full max-w-md border rounded-lg p-8">
 
         {/* Rocket Elevators logo at the top of the login box */}

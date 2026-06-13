@@ -1,6 +1,6 @@
-# RE Admin — Rocket Elevators Agent Management
+# RE Admin — Rocket Elevators Internal Admin Panel
 
-A React-based MERN single-page application that allows Rocket Elevators staff to manage their agent workforce through full CRUD operations, protected by a credential-based login system.
+An internal back-office web application built for Rocket Elevators staff. It provides a secure interface for managing agents and transactions — including creating, viewing, editing, and deleting agent records, logging transactions, and controlling access via a session-based login system.
 
 ---
 
@@ -18,77 +18,93 @@ A React-based MERN single-page application that allows Rocket Elevators staff to
 
 ## Description
 
-RE Admin is an internal back-office administration tool built for Rocket Elevators employees. It provides a secure, interactive interface for viewing, creating, editing, and deleting agents stored in MongoDB Atlas.
+RE Admin is a full-stack MERN (MongoDB, Express, React, Node.js) single-page application. It was built across two modules:
 
-The application is built on the MERN stack (MongoDB, Express, React, Node.js) and was scaffolded from the official MongoDB MERN Stack Tutorial, then adapted and extended to meet Rocket Elevators business requirements. Access is restricted to registered staff — users must log in with their email and password before reaching the agent management interface.
+- **Module 7** established the foundation: a JWT-authenticated agent management system with full CRUD (Create, Read, Update, Delete) operations backed by MongoDB Atlas.
+- **Module 8** extended the application additively: a dashboard home page, global toast notifications, confirmation modals, UUID cookie-based session management, token validation on every route, a redesigned navigation bar, and a transactions page.
+
+The app is intended for internal use only — staff must log in with their registered email and password before accessing any part of the interface. Sessions are stored in MongoDB with a 24-hour automatic expiry.
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology | Version |
-|-------|-----------|---------|
-| Frontend | React | 19.x |
-| Frontend Routing | React Router DOM | 7.x |
-| Frontend Styling | Tailwind CSS | 3.x |
-| Build Tool | Vite | 8.x |
-| Backend | Node.js + Express | 5.x |
-| Database | MongoDB Atlas | — |
-| Database Driver | MongoDB Node.js Driver | 7.x |
-| Package Manager | npm | — |
+| Layer | Technology | Version | Purpose |
+|-------|-----------|---------|---------|
+| Frontend | React | 19.x | UI components and state management |
+| Frontend Routing | React Router DOM | 7.x | Client-side navigation between pages |
+| Frontend UI | React Bootstrap + Bootstrap | 5.x | Modal, Toast, Card, layout components |
+| Frontend Styling | Tailwind CSS | 3.x | Utility-class styling throughout the app |
+| Build Tool | Vite | 6.x | Frontend dev server and production build |
+| Cookie Management | react-use-cookie | — | Read/write/delete browser cookies for session tokens |
+| Backend | Express | 5.x | REST API server |
+| Runtime | Node.js | 18+ | JavaScript runtime for the backend |
+| Database | MongoDB Atlas | — | Cloud-hosted NoSQL database |
+| Database Driver | MongoDB Node.js Driver | 7.x | Connects Express to MongoDB Atlas |
+| Auth (M7) | JSON Web Tokens (JWT) | — | Protects the `/agents` API routes |
+| Auth (M8) | UUID sessions | — | Cookie-based sessions stored in MongoDB |
+| Package Manager | npm | — | Dependency management for both client and server |
 
 ---
 
 ## Project Structure
 
 ```
-Module7/
-├── server/                          ← Express backend (Node.js)
-│   ├── server.js                    ← Entry point — registers middleware and routes
-│   ├── config.env                   ← Environment variables (not committed to Git)
+Module7&8/
+├── server/                            ← Express backend (Node.js)
+│   ├── server.js                      ← Entry point — registers middleware, routes, and TTL index
+│   ├── config.env                     ← Environment variables (not committed to Git)
+│   ├── seed.js                        ← Optional script to seed the database with sample agents
 │   ├── db/
-│   │   ├── connection.js            ← MongoDB Atlas connection; exports agentsDb and usersDb
+│   │   ├── connection.js              ← MongoDB Atlas connection; exports agentsDb, usersDb, sessionsDb, transactionsDb
 │   │   └── schemas/
-│   │       ├── agent.schema.js      ← Agent document shape + createAgent / updateAgent factory functions
-│   │       └── user.schema.js       ← User document shape + createUser factory function
+│   │       ├── agent.schema.js        ← Agent document shape; createAgent() and updateAgent() factory functions
+│   │       └── user.schema.js         ← User document shape
+│   ├── middleware/
+│   │   └── auth.js                    ← requireAuth middleware — validates JWT on protected routes
 │   └── routes/
-│       ├── agents.js                ← Agent CRUD endpoints (GET, POST, PATCH, DELETE /agents)
-│       │                               Note: this file acts as a "fat router" — it combines routing
-│       │                               logic (router.get, router.post, etc.) and controller logic
-│       │                               (the async handler callbacks) in one file. In larger projects
-│       │                               these are split into separate routes/ and controllers/ folders,
-│       │                               but the combined pattern is appropriate at this scale.
-│       └── users.js                 ← Login endpoint (POST /users/login); also a fat router
+│       ├── agents.js                  ← Agent CRUD: GET, POST, PATCH, DELETE /agents (JWT-protected)
+│       ├── users.js                   ← Login: POST /users/login
+│       ├── session.js                 ← Sessions: POST /session/:user_id, GET /validate_token
+│       └── transactions.js            ← Transactions: GET /transaction-data, POST /transaction
 │
-├── client/                          ← React frontend (Vite)
-│   ├── index.html                   ← Single HTML file — app mounts at #root
+├── client/                            ← React frontend (Vite)
+│   ├── index.html                     ← Single HTML file — React app mounts at #root
 │   ├── public/
-│   │   ├── rocketLogo.png           ← Rocket Elevators logo used in Navbar and Login page
-│   │   └── favicon.png              ← Rocket Elevators browser tab icon
-│   ├── tailwind.config.js           ← Tailwind CSS configuration
-│   ├── postcss.config.js            ← PostCSS pipeline (required by Tailwind)
-│   ├── vite.config.js               ← Vite build configuration
+│   │   └── rocketLogo.png             ← Rocket Elevators logo
+│   ├── tailwind.config.js             ← Tailwind CSS configuration
+│   ├── postcss.config.js              ← PostCSS pipeline (required by Tailwind)
+│   ├── vite.config.js                 ← Vite build configuration
 │   └── src/
-│       ├── main.jsx                 ← Router setup and app entry point
-│       ├── App.jsx                  ← Shared layout — renders Navbar + Outlet
-│       ├── index.css                ← Tailwind CSS base imports
+│       ├── main.jsx                   ← React Router setup; all routes defined here; AlertProvider wraps the app
+│       ├── App.jsx                    ← Shared layout — renders Navbar + Outlet for all main pages
+│       ├── index.css                  ← Tailwind CSS base imports
+│       ├── context/
+│       │   └── AlertContext.jsx       ← Global alert state; AlertProvider and useAlert hook
+│       ├── hooks/
+│       │   └── useTokenValidation.js  ← Custom hook — validates session cookie on every page load; redirects to /login if invalid
 │       └── components/
-│           ├── Navbar.jsx           ← Top navigation bar with logo, Create Agent, and Logout
-│           ├── Login.jsx            ← Login page (standalone, no Navbar)
-│           ├── Unauthorized.jsx     ← Error page shown on failed login (standalone, no Navbar)
-│           ├── AgentList.jsx        ← Home page — agent table with Edit and Delete actions
-│           └── AgentForm.jsx       ← Create and Edit form (shared component)
+│           ├── Navbar.jsx             ← Top navigation bar; shows logged-in user's name and Logout button
+│           ├── Login.jsx              ← Standalone login page; handles credential check + session creation
+│           ├── Unauthorized.jsx       ← Shown on access denied (standalone, no Navbar)
+│           ├── HomePage.jsx           ← Dashboard with React Bootstrap Cards linking to Agents and Transactions
+│           ├── AgentList.jsx          ← Agent table with Create, Edit, and Delete actions
+│           ├── AgentForm.jsx          ← Shared Create / Edit agent form with confirmation modal
+│           ├── Transactions.jsx       ← Transaction table (last 10) and new transaction form
+│           ├── ConfirmationModal.jsx  ← Reusable React Bootstrap Modal for confirming destructive actions
+│           └── AlertToast.jsx         ← Reusable React Bootstrap Toast for success/error notifications
 │
-├── ai/                              ← AI-native specification documents
-│   ├── ai-spec.md                   ← Global project specification
-│   └── features/                   ← One spec file per feature
+├── ai/                                ← AI-native specification documents
+│   ├── ai-spec.md                     ← Global project specification (M7 + M8)
+│   └── features/                      ← One spec file per feature (14 total across M7 and M8)
 │
-├── LeetCode-Challenges/             ← LeetCode solution screenshots
-├── PostmanCollection.json           ← Postman collection covering all endpoints
-├── README.md                        ← This file
-├── CONCEPTS.md                      ← 3 challenging concepts used in this project
-├── Research.md                      ← React and MERN stack research
-└── CODEBASE.md                      ← Learning reference for junior developers
+├── PostmanCollection.json             ← Postman collection covering all API endpoints with pre-filled variables and test assertions
+├── README.md                          ← This file
+├── CODEBASE.md                        ← Learning reference for the codebase
+├── Research.md                        ← Research notes on React and MERN concepts
+├── CONCEPTS 7.md                      ← Three challenging concepts from Module 7
+├── CONCEPTS 8.md                      ← Three challenging concepts from Module 8
+└── FILE_FLOW.md                       ← Visual walkthrough of how a request flows through the app
 ```
 
 ---
@@ -97,20 +113,20 @@ Module7/
 
 ### Prerequisites
 
-Before starting, make sure you have the following installed:
+Make sure the following are installed before starting:
 
-- [Node.js](https://nodejs.org/) (v18 or higher) — verify with `node -v`
+- [Node.js](https://nodejs.org/) v18 or higher — verify with `node -v`
 - [npm](https://www.npmjs.com/) — verify with `npm -v`
-- A [MongoDB Atlas](https://www.mongodb.com/atlas) account with a cluster set up
-- [Git](https://git-scm.com/) — verify with `git -v`
+- A [MongoDB Atlas](https://www.mongodb.com/atlas) account with a free cluster created
+- [Git](https://git-scm.com/) — verify with `git --version`
 
 ---
 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/FL11024OmeedK/Module-7.git
-cd Module-7
+git clone https://github.com/FL11024OmeedK/Module-7-8.git
+cd Module-7-8
 ```
 
 ---
@@ -129,15 +145,18 @@ npm install
 Create a `config.env` file inside the `server/` folder:
 
 ```bash
-touch config.env
+touch server/config.env
 ```
 
-Add the following (replace with your actual MongoDB Atlas connection string):
+Add the following content (replace placeholder values with your own):
 
 ```env
 ATLAS_URI=your_mongodb_atlas_connection_string
 PORT=5050
+JWT_SECRET=your-long-random-secret-key
 ```
+
+See the [Environment Variables](#environment-variables) section for full details on each variable.
 
 ---
 
@@ -150,9 +169,11 @@ npm install
 
 ---
 
-### 5. Create a user in MongoDB Atlas
+### 5. Set up MongoDB Atlas collections
 
-The app requires at least one user document to log in. In MongoDB Atlas Data Explorer, manually insert a document into the `users` database → `users` collection:
+The app uses four MongoDB databases. You do not need to create them manually — MongoDB creates them automatically on first write. However, you must manually insert at least one user document so you can log in.
+
+In MongoDB Atlas, go to **Browse Collections** and insert a document into `users` database → `users` collection:
 
 ```json
 {
@@ -163,9 +184,13 @@ The app requires at least one user document to log in. In MongoDB Atlas Data Exp
 }
 ```
 
+> **Note:** Passwords are stored in plain text in this project — this is intentional for a bootcamp learning context and is not suitable for production.
+
+The remaining collections (`agents`, `sessions`, `transactions`) are created automatically when the app first writes to them.
+
 ---
 
-### 6. Start the backend server
+### 6. Start the backend
 
 From the `server/` directory:
 
@@ -174,6 +199,7 @@ npm run dev
 ```
 
 Expected output:
+
 ```
 Pinged your deployment. You successfully connected to MongoDB!
 Server listening on port 5050
@@ -181,39 +207,44 @@ Server listening on port 5050
 
 ---
 
-### 7. Start the frontend development server
+### 7. Start the frontend
 
-From the `client/` directory in a separate terminal:
+From the `client/` directory in a **separate terminal**:
 
 ```bash
 npm run dev
 ```
 
 Expected output:
+
 ```
 VITE ready in Xms
-➜ Local: http://localhost:5173/
+➜  Local:   http://localhost:5173/
 ```
 
 ---
 
 ### 8. Open the app
 
-Navigate to [http://localhost:5173/login](http://localhost:5173/login) and log in with the credentials inserted in Step 5.
+Navigate to [http://localhost:5173/login](http://localhost:5173/login) and sign in with the credentials you inserted in Step 5.
+
+---
+
+### Testing the API (optional)
+
+Import `PostmanCollection.json` into Postman via **File → Import**. Run **POST /users/login — Success** first — it automatically captures the JWT token and user ID for all subsequent requests. No manual variable editing required.
 
 ---
 
 ## Environment Variables
 
-All environment variables are stored in `server/config.env`. This file is **not committed to Git** — never share it publicly.
+All environment variables live in `server/config.env`. This file is excluded from Git via `.gitignore` — never commit it or share it publicly.
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `ATLAS_URI` | MongoDB Atlas connection string | `mongodb+srv://user:pass@cluster.mongodb.net/` |
-| `PORT` | Port the Express server listens on | `5050` |
-| `JWT_SECRET` | Secret key used to sign and verify JWT tokens | `some-long-random-string` |
-
-> **Note:** Change `JWT_SECRET` to a long, random string in any real deployment. Anyone who knows this value can forge valid tokens.
+| Variable | Required | Description | Example |
+|----------|----------|-------------|---------|
+| `ATLAS_URI` | Yes | MongoDB Atlas connection string. Found in Atlas under **Connect → Drivers**. | `mongodb+srv://user:pass@cluster.mongodb.net/?appName=AppName` |
+| `PORT` | Yes | Port the Express server listens on. The frontend is hardcoded to call `localhost:5050`. | `5050` |
+| `JWT_SECRET` | Yes | Secret key used to sign and verify JWT tokens for the `/agents` routes. Use a long, random string. Anyone who knows this value can forge valid tokens. | `rocket-elevators-super-secret-key` |
 
 ---
 
@@ -221,15 +252,15 @@ All environment variables are stored in `server/config.env`. This file is **not 
 
 **Base URL:** `http://localhost:5050`
 
-All request and response bodies use JSON. Include `Content-Type: application/json` on POST and PATCH requests.
+All request and response bodies use JSON. Include `Content-Type: application/json` on all POST and PATCH requests.
 
 ---
 
 ### Authentication
 
-#### POST `/users/login`
+#### `POST /users/login`
 
-Validates staff credentials against the `users` MongoDB database. On success, returns a signed JWT valid for 24 hours. Include this token as `Authorization: Bearer <token>` on all subsequent `/agents` requests.
+Validates staff credentials. On success, returns a signed JWT (valid 24 hours) and the user's profile. Store the JWT and send it as `Authorization: Bearer <token>` on all `/agents` requests.
 
 **Request body:**
 ```json
@@ -243,32 +274,75 @@ Validates staff credentials against the `users` MongoDB database. On success, re
 
 | Status | Body |
 |--------|------|
-| `200` | `{ "token": "<jwt>" }` |
+| `200` | `{ "token": "<jwt>", "user": { "_id": "...", "first_name": "...", "last_name": "..." } }` |
 | `401` | `"Unauthorized: email not found"` |
 | `401` | `"Unauthorized: incorrect password"` |
 | `500` | `"Error during login"` |
 
 ---
 
+### Sessions
+
+Sessions are UUID tokens stored in MongoDB with a 24-hour TTL. The frontend creates a session immediately after a successful login and stores the token in a browser cookie (`session_token`). Every protected page calls `GET /validate_token` on load to confirm the session is still valid.
+
+#### `POST /session/:user_id`
+
+Creates a new session for the given user. Called automatically by the frontend after login — you do not need to call this manually during normal use.
+
+**URL parameter:** `:user_id` — the MongoDB `_id` of the logged-in user.
+
+**Request body:**
+```json
+{
+  "first_name": "Omeed",
+  "last_name": "Kashef"
+}
+```
+
+**Responses:**
+
+| Status | Body |
+|--------|------|
+| `201` | `{ "status": "ok", "data": { "token": "<uuid>" }, "message": "session saved successfully" }` |
+| `500` | `{ "status": "error", "data": null, "message": "<error>" }` |
+
+---
+
+#### `GET /validate_token?token=<uuid>`
+
+Checks whether a session token is still valid. MongoDB's TTL index automatically removes expired sessions — if a token is not found, it has expired.
+
+**Query parameter:** `token` — the UUID session token from the cookie.
+
+**Responses:**
+
+| Status | Body |
+|--------|------|
+| `200` (valid) | `{ "status": "ok", "data": { "valid": true, "user": { "first_name": "...", "last_name": "...", "id": "..." } }, "message": null }` |
+| `200` (invalid/missing) | `{ "status": "ok", "data": { "valid": false, "user": null }, "message": null }` |
+| `500` | `{ "status": "error", "data": null, "message": "<error>" }` |
+
+---
+
 ### Agents
 
-> All `/agents` endpoints require `Authorization: Bearer <token>` in the request header. Get a token first via `POST /users/login`. Requests without a valid token receive `401 No token provided`.
+All `/agents` endpoints require `Authorization: Bearer <token>` in the request header. Get a token from `POST /users/login`. Requests without a valid token receive `401 Invalid or expired token`.
 
-#### GET `/agents`
+#### `GET /agents`
 
-Returns all agents stored in MongoDB.
+Returns all agents in the database.
 
 **Response `200`:**
 ```json
 [
   {
-    "_id": "64abc123...",
-    "first_name": "Orlando",
-    "last_name": "Perez",
-    "email": "perez@rocket.elv",
-    "region": "North",
-    "rating": 95,
-    "fee": 10000,
+    "_id": "6a204e6191af1c18ae2521d1",
+    "first_name": "Brutus",
+    "last_name": "Konway",
+    "email": "brutus@rocketelev.com",
+    "region": "East",
+    "rating": 5,
+    "fee": 3000,
     "sales": 0
   }
 ]
@@ -276,22 +350,22 @@ Returns all agents stored in MongoDB.
 
 ---
 
-#### GET `/agents/:id`
+#### `GET /agents/:id`
 
 Returns a single agent by MongoDB `_id`.
 
 | Status | Body |
 |--------|------|
 | `200` | Agent document |
-| `401` | `{ "error": "No token provided" }` |
+| `401` | `{ "error": "Invalid or expired token" }` |
 | `404` | `"Agent not found"` |
 | `500` | `"Error retrieving agent"` |
 
 ---
 
-#### POST `/agents`
+#### `POST /agents`
 
-Creates a new agent. `sales` is automatically set to `0` — do not include it in the request.
+Creates a new agent. `sales` is automatically set to `0` by the server — do not include it in the request body.
 
 **Request body:**
 ```json
@@ -307,45 +381,81 @@ Creates a new agent. `sales` is automatically set to `0` — do not include it i
 
 | Status | Body |
 |--------|------|
-| `201` | MongoDB insert result with `insertedId` |
-| `401` | `{ "error": "No token provided" }` |
+| `201` | MongoDB insert result `{ "insertedId": "..." }` |
+| `401` | `{ "error": "Invalid or expired token" }` |
 | `500` | `"Error adding agent"` |
 
 ---
 
-#### PATCH `/agents/:id`
+#### `PATCH /agents/:id`
 
-Updates an existing agent. `sales` cannot be updated through this endpoint.
+Updates an existing agent by `_id`. The `sales` field cannot be updated through this endpoint.
+
+**Request body:** Same fields as POST (all fields required).
+
+| Status | Body |
+|--------|------|
+| `200` | MongoDB update result `{ "modifiedCount": 1 }` |
+| `401` | `{ "error": "Invalid or expired token" }` |
+| `500` | `"Error updating agent"` |
+
+---
+
+#### `DELETE /agents/:id`
+
+Permanently deletes an agent by `_id`. This action is irreversible.
+
+| Status | Body |
+|--------|------|
+| `200` | MongoDB delete result `{ "deletedCount": 1 }` |
+| `401` | `{ "error": "Invalid or expired token" }` |
+| `500` | `"Error deleting agent"` |
+
+---
+
+### Transactions
+
+Transaction endpoints do not require JWT authentication — session validation is handled client-side via the cookie.
+
+#### `GET /transaction-data`
+
+Returns the last 10 transactions sorted by date, most recent first.
+
+**Response `200`:**
+```json
+{
+  "status": "ok",
+  "data": [
+    {
+      "_id": "...",
+      "date": "2026-06-10T14:30:00.000Z",
+      "amount": 1500,
+      "agent_id": "6a204e6191af1c18ae2521d1"
+    }
+  ],
+  "message": null
+}
+```
+
+---
+
+#### `POST /transaction`
+
+Saves a new transaction. `date` is set automatically by the server to the current timestamp — do not include it in the request body.
 
 **Request body:**
 ```json
 {
-  "first_name": "Orlando",
-  "last_name": "Perez",
-  "email": "perez@rocket.elv",
-  "region": "South",
-  "rating": 98,
-  "fee": 12000
+  "amount": 1500,
+  "agent_id": "6a204e6191af1c18ae2521d1"
 }
 ```
 
 | Status | Body |
 |--------|------|
-| `200` | MongoDB update result with `modifiedCount` |
-| `401` | `{ "error": "No token provided" }` |
-| `500` | `"Error updating agent"` |
-
----
-
-#### DELETE `/agents/:id`
-
-Permanently deletes an agent by MongoDB `_id`.
-
-| Status | Body |
-|--------|------|
-| `200` | MongoDB delete result with `deletedCount` |
-| `401` | `{ "error": "No token provided" }` |
-| `500` | `"Error deleting agent"` |
+| `201` | `{ "status": "ok", "data": { "_id": "...", "date": "...", "amount": 1500, "agent_id": "..." }, "message": "transaction saved successfully" }` |
+| `400` | `{ "status": "error", "data": null, "message": "Amount must be a positive number" }` |
+| `500` | `{ "status": "error", "data": null, "message": "<error>" }` |
 
 ---
 

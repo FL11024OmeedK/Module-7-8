@@ -1,8 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { Container, Row, Col, Card, Button } from "react-bootstrap";
+import useTokenValidation from "../hooks/useTokenValidation";
 
 export default function HomePage() {
   const navigate = useNavigate();
+  useTokenValidation();
 
   return (
     <Container className="mt-4">

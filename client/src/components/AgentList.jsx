@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useAlert } from "../context/AlertContext";
+import ConfirmationModal from "./ConfirmationModal";
+import useTokenValidation from "../hooks/useTokenValidation";
 
 // AgentRow renders a single agent as a table row.
 const AgentRow = (props) => (
@@ -31,9 +34,7 @@ const AgentRow = (props) => (
           className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-slate-100 hover:text-accent-foreground h-9 rounded-md px-3"
           color="red"
           type="button"
-          onClick={() => {
-            props.deleteAgent(props.agent._id);
-          }}
+          onClick={() => props.requestDelete(props.agent._id)}
         >
           Delete
         </button>
@@ -46,6 +47,9 @@ const AgentRow = (props) => (
 
 export default function AgentList() {
   const [agents, setAgents] = useState([]);
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
+  const { showAlert } = useAlert();
+  useTokenValidation();
   console.log(localStorage.getItem("token"));
   // This method fetches the agents from the database.
   useEffect(() => {
@@ -67,12 +71,18 @@ export default function AgentList() {
 
   // This method will delete an agent
   async function deleteAgent(id) {
-    await fetch(`http://localhost:5050/agents/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    });
-    const updatedAgents = agents.filter((el) => el._id !== id);
-    setAgents(updatedAgents);
+    try {
+      const response = await fetch(`http://localhost:5050/agents/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      if (!response.ok) throw new Error(response.statusText);
+      const updatedAgents = agents.filter((el) => el._id !== id);
+      setAgents(updatedAgents);
+      showAlert("Agent deleted successfully.", "success");
+    } catch {
+      showAlert("Failed to delete agent.", "danger");
+    }
   }
 
   // This method will map out the agents on the table
@@ -81,7 +91,7 @@ export default function AgentList() {
       return (
         <AgentRow
           agent={agent}
-          deleteAgent={() => deleteAgent(agent._id)}
+          requestDelete={(id) => setPendingDeleteId(id)}
           key={agent._id}
         />
       );
@@ -91,7 +101,21 @@ export default function AgentList() {
   // This following section will display the table with the agents.
   return (
     <>
-      <h3 className="text-lg font-semibold p-4">Agents</h3>
+      <ConfirmationModal
+        show={pendingDeleteId !== null}
+        message="Are you sure you want to delete this agent?"
+        onConfirm={() => { deleteAgent(pendingDeleteId); setPendingDeleteId(null); }}
+        onCancel={() => setPendingDeleteId(null)}
+      />
+      <div className="flex justify-between items-center p-4">
+        <h3 className="text-lg font-semibold">Agents</h3>
+        <Link
+          className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-slate-100 h-9 rounded-md px-3"
+          to="/create"
+        >
+          Create Agent
+        </Link>
+      </div>
       <div className="border rounded-lg overflow-hidden">
         <div className="relative w-full overflow-auto">
           <table className="w-full caption-bottom text-sm">

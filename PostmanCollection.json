@@ -33,6 +33,21 @@
       "key": "userPassword",
       "value": "yourpassword",
       "_comment": "Update this to match the password of the user document you inserted in MongoDB Atlas."
+    },
+    {
+      "key": "userId",
+      "value": "6a1f278ac25ffa78c1f3da37",
+      "_comment": "MongoDB _id of the logged-in user. Auto-populated by POST /users/login test script."
+    },
+    {
+      "key": "sessionToken",
+      "value": "",
+      "_comment": "UUID session token. Auto-populated by POST /session/:userId test script."
+    },
+    {
+      "key": "transactionAgentId",
+      "value": "6a204e6191af1c18ae2521d1",
+      "_comment": "agent_id used for POST /transaction. Pre-filled with Brutus Konway's ID."
     }
   ],
 
@@ -66,7 +81,8 @@
                   "const response = pm.response.json();",
                   "if (response.token) {",
                   "    pm.collectionVariables.set('token', response.token);",
-                  "    console.log('token captured and saved to collection variable');",
+                  "    pm.collectionVariables.set('userId', response.user._id);",
+                  "    console.log('token and userId captured and saved to collection variables');",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -379,6 +395,244 @@
               "path": ["agents", "{{agentId}}"]
             },
             "description": "Permanently deletes an agent. Requires Authorization: Bearer {{token}}. Uses {{agentId}} set automatically after POST /agents."
+          }
+        }
+      ]
+    },
+    {
+      "_comment": "Sessions folder — create a UUID session and validate it. Run POST /users/login first to capture {{userId}}.",
+      "name": "Sessions",
+      "description": "Session endpoints added in M8. POST creates a UUID session token stored in MongoDB with a 24h TTL. GET validates a token and returns the embedded user object.",
+      "item": [
+        {
+          "_comment": "CREATE SESSION — posts to /session/:userId, captures the UUID token into {{sessionToken}}.",
+          "name": "POST /session/:userId — Create Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response contains session token', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.status).to.eql('ok');",
+                  "    pm.expect(body.data.token).to.be.a('string');",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "if (response.data && response.data.token) {",
+                  "    pm.collectionVariables.set('sessionToken', response.data.token);",
+                  "    console.log('sessionToken captured:', response.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Omeed\",\n  \"last_name\": \"Kashef\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/session/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["session", "{{userId}}"]
+            },
+            "description": "Creates a UUID session for the given userId. Returns { status: 'ok', data: { token }, message }. The token is saved automatically to {{sessionToken}}."
+          }
+        },
+        {
+          "_comment": "VALIDATE TOKEN — checks if sessionToken is still valid. Returns user info if valid.",
+          "name": "GET /validate_token — Valid Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Token is valid and user is returned', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.data.valid).to.eql(true);",
+                  "    pm.expect(body.data.user).to.have.property('first_name');",
+                  "    pm.expect(body.data.user).to.have.property('last_name');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/validate_token?token={{sessionToken}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["validate_token"],
+              "query": [{ "key": "token", "value": "{{sessionToken}}" }]
+            },
+            "description": "Validates a UUID session token. Returns { status, data: { valid: true, user: { first_name, last_name, id } }, message }. Uses {{sessionToken}} captured by POST /session."
+          }
+        },
+        {
+          "_comment": "VALIDATE TOKEN — missing token. Should return valid: false.",
+          "name": "GET /validate_token — Missing Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('valid is false when no token provided', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.data.valid).to.eql(false);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/validate_token",
+              "host": ["{{baseUrl}}"],
+              "path": ["validate_token"]
+            },
+            "description": "Calls /validate_token with no token query param. Expected: 200 with data.valid = false."
+          }
+        }
+      ]
+    },
+    {
+      "_comment": "Transactions folder — get last 10 transactions and create a new one.",
+      "name": "Transactions",
+      "description": "Transaction endpoints added in M8. GET /transaction-data returns the last 10 transactions sorted newest-first. POST /transaction saves a new transaction with a positive amount and an agent_id.",
+      "item": [
+        {
+          "_comment": "READ — returns last 10 transactions sorted by date descending.",
+          "name": "GET /transaction-data — Last 10 Transactions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response data is an array with at most 10 items', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.status).to.eql('ok');",
+                  "    pm.expect(body.data).to.be.an('array');",
+                  "    pm.expect(body.data.length).to.be.at.most(10);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/transaction-data",
+              "host": ["{{baseUrl}}"],
+              "path": ["transaction-data"]
+            },
+            "description": "Returns the last 10 transactions sorted by date descending. Returns { status: 'ok', data: [...], message: null }. No auth required."
+          }
+        },
+        {
+          "_comment": "CREATE — inserts a new transaction with a positive amount and a valid agent_id.",
+          "name": "POST /transaction — Create Transaction",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response contains created transaction', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.status).to.eql('ok');",
+                  "    pm.expect(body.message).to.eql('transaction saved successfully');",
+                  "    pm.expect(body.data).to.have.property('_id');",
+                  "    pm.expect(body.data.amount).to.eql(1500);",
+                  "    pm.expect(body.data).to.have.property('date');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1500,\n  \"agent_id\": \"{{transactionAgentId}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transaction",
+              "host": ["{{baseUrl}}"],
+              "path": ["transaction"]
+            },
+            "description": "Creates a new transaction. amount must be a positive number. agent_id must be a valid agent ObjectId. Returns { status: 'ok', data: { _id, date, amount, agent_id }, message }."
+          }
+        },
+        {
+          "_comment": "VALIDATION — amount of 0 should return 400.",
+          "name": "POST /transaction — Invalid Amount (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Error message mentions positive number', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.status).to.eql('error');",
+                  "    pm.expect(body.message).to.include('positive');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 0,\n  \"agent_id\": \"{{transactionAgentId}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transaction",
+              "host": ["{{baseUrl}}"],
+              "path": ["transaction"]
+            },
+            "description": "Attempts to create a transaction with amount: 0. Expected: 400 with message 'Amount must be a positive number'."
           }
         }
       ]

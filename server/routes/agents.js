@@ -8,7 +8,7 @@ import { ObjectId } from "mongodb";
 
 // Import schema factory functions to build properly shaped agent documents.
 // This ensures field names are consistent across all routes.
-import { createAgent, updateAgent } from "../db/schemas/agent.schema.js";
+import { createAgent, updateAgent, validateAgent } from "../db/schemas/agent.schema.js";
 
 // router is an instance of the express router.
 // We use it to define our routes.
@@ -44,6 +44,10 @@ router.get("/:id", async (req, res) => {
 // createAgent() builds a clean object with the correct agent fields.
 router.post("/", async (req, res) => {
   try {
+    // Reject the request with 400 Bad Request if any field has the wrong type or is missing.
+    const validationError = validateAgent(req.body);
+    if (validationError) return res.status(400).send(validationError);
+
     let newAgent = createAgent(req.body);
     let collection = agentsDb.collection("agents");
     let result = await collection.insertOne(newAgent);
@@ -57,6 +61,10 @@ router.post("/", async (req, res) => {
 // updateAgent() builds the update object — sales is excluded so it can't be overwritten here.
 router.patch("/:id", async (req, res) => {
   try {
+    // Reject the request with 400 Bad Request if any field has the wrong type or is missing.
+    const validationError = validateAgent(req.body);
+    if (validationError) return res.status(400).send(validationError);
+
     const query = { _id: new ObjectId(req.params.id) };
     const updates = { $set: updateAgent(req.body) };
     let collection = agentsDb.collection("agents");
