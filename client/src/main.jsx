@@ -52,6 +52,7 @@ const router = createBrowserRouter([
 // Finds the <div id="root"></div> from index.html and tells React to control it.
 ReactDOM.createRoot(document.getElementById("root")).render(
   // StrictMode helps catch React problems during development.
+  // AlertProvider wraps the entire app so any component can trigger a toast notification.
   <React.StrictMode>
     <AlertProvider>
       {/* RouterProvider renders the correct page based on the current URL. */}

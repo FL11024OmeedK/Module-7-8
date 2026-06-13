@@ -1,9 +1,12 @@
 // Transactions.jsx
 // Displays the last 10 transactions in a table and provides a form to add new ones.
+// Each row has an Edit button that loads the transaction into the same form
+// (submitting then PATCHes instead of POSTing) and a Delete button that
+// removes the transaction after confirmation.
 // Uses ConfirmationModal (Feature 3) and showAlert (Feature 2) from existing infrastructure.
 // Calls useTokenValidation to protect this route — redirects to /login without a valid session.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAlert } from "../context/AlertContext";
 import ConfirmationModal from "./ConfirmationModal";
 import useTokenValidation from "../hooks/useTokenValidation";
@@ -14,8 +17,16 @@ export default function Transactions() {
   // agentMap lets us resolve agent_id → "First Last" without a backend join.
   const [agentMap, setAgentMap] = useState({});
   const [form, setForm] = useState({ amount: "", agent_id: "" });
+  // editingId holds the _id of the transaction being edited, or null when creating a new one.
+  // This mirrors the isNew pattern in AgentForm, but kept on the same page as the table.
+  const [editingId, setEditingId] = useState(null);
+  // pendingDeleteId holds the _id awaiting delete confirmation (same pattern as AgentList).
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const { showAlert } = useAlert();
+  // Points at the form card so startEdit can scroll it into view —
+  // without this, clicking Edit changes a form that's below the fold and looks like nothing happened.
+  const formRef = useRef(null);
   useTokenValidation();
 
   // Fetch agents and transactions on mount in parallel.
@@ -56,19 +67,64 @@ export default function Transactions() {
     setForm((prev) => ({ ...prev, ...value }));
   }
 
+  // Loads an existing transaction into the form so it can be edited.
+  function startEdit(t) {
+    setEditingId(t._id);
+    setForm({ amount: String(t.amount), agent_id: t.agent_id });
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // Leaves edit mode and resets the form back to "new transaction".
+  function cancelEdit() {
+    setEditingId(null);
+    setForm({ amount: "", agent_id: "" });
+  }
+
   // onSubmit validates the form then opens the confirmation modal.
+  // Each check shows a toast explaining what to fix instead of failing silently.
   function onSubmit(e) {
     e.preventDefault();
-    if (!form.amount || Number(form.amount) <= 0 || !form.agent_id) return;
+    if (!form.amount || Number.isNaN(Number(form.amount)) || Number(form.amount) <= 0) {
+      showAlert("Amount must be a positive number.", "danger");
+      return;
+    }
+    if (!form.agent_id) {
+      showAlert("Please select an agent.", "danger");
+      return;
+    }
     setShowModal(true);
   }
 
+  // handleDelete fires after the user confirms a delete in the modal.
+  async function handleDelete() {
+    const id = pendingDeleteId;
+    setPendingDeleteId(null);
+    try {
+      const res = await fetch(`http://localhost:5050/transaction/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const { message } = await res.json();
+        showAlert(message || "Failed to delete transaction.", "danger");
+        return;
+      }
+      showAlert("Transaction deleted successfully.", "success");
+      // If the deleted row was loaded in the edit form, reset the form too.
+      if (editingId === id) cancelEdit();
+      fetchTransactions();
+    } catch {
+      showAlert("Failed to delete transaction.", "danger");
+    }
+  }
+
   // handleConfirm fires after the user confirms in the modal.
+  // POSTs a new transaction, or PATCHes the existing one when in edit mode.
   async function handleConfirm() {
     setShowModal(false);
     try {
-      const res = await fetch("http://localhost:5050/transaction", {
-        method: "POST",
+      const url = editingId
+        ? `http://localhost:5050/transaction/${editingId}`
+        : "http://localhost:5050/transaction";
+      const res = await fetch(url, {
+        method: editingId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount: Number(form.amount), agent_id: form.agent_id }),
       });
@@ -77,7 +133,8 @@ export default function Transactions() {
         showAlert(message || "Failed to save transaction.", "danger");
         return;
       }
-      showAlert("Transaction saved successfully.", "success");
+      showAlert(editingId ? "Transaction updated successfully." : "Transaction saved successfully.", "success");
+      setEditingId(null);
       setForm({ amount: "", agent_id: "" });
       fetchTransactions();
     } catch {
@@ -87,11 +144,18 @@ export default function Transactions() {
 
   return (
     <>
+      {/* One modal, three flows: delete takes priority, otherwise update/create based on edit mode. */}
       <ConfirmationModal
-        show={showModal}
-        message="Are you sure you want to submit this transaction?"
-        onConfirm={handleConfirm}
-        onCancel={() => setShowModal(false)}
+        show={showModal || pendingDeleteId !== null}
+        message={
+          pendingDeleteId
+            ? "Are you sure you want to delete this transaction?"
+            : editingId
+            ? "Are you sure you want to update this transaction?"
+            : "Are you sure you want to submit this transaction?"
+        }
+        onConfirm={pendingDeleteId ? handleDelete : handleConfirm}
+        onCancel={() => { setShowModal(false); setPendingDeleteId(null); }}
       />
 
       <div className="flex flex-col gap-8">
@@ -113,12 +177,15 @@ export default function Transactions() {
                     <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
                       Agent
                     </th>
+                    <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="[&_tr:last-child]:border-0">
                   {transactions.length === 0 ? (
                     <tr>
-                      <td colSpan={3} className="p-4 text-center text-slate-400">
+                      <td colSpan={4} className="p-4 text-center text-slate-400">
                         No transactions yet.
                       </td>
                     </tr>
@@ -135,6 +202,24 @@ export default function Transactions() {
                         <td className="p-4 align-middle">
                           {agentMap[t.agent_id] || t.agent_id}
                         </td>
+                        <td className="p-4 align-middle">
+                          <div className="flex gap-2">
+                            <button
+                              className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-slate-100 hover:text-accent-foreground h-9 rounded-md px-3"
+                              type="button"
+                              onClick={() => startEdit(t)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-slate-100 hover:text-accent-foreground h-9 rounded-md px-3"
+                              type="button"
+                              onClick={() => setPendingDeleteId(t._id)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     ))
                   )}
@@ -145,8 +230,10 @@ export default function Transactions() {
         </div>
 
         {/* New Transaction Form */}
-        <div className="border rounded-lg p-6 max-w-md">
-          <h3 className="text-lg font-semibold mb-4">New Transaction</h3>
+        <div ref={formRef} className="border rounded-lg p-6 max-w-md">
+          <h3 className="text-lg font-semibold mb-4">
+            {editingId ? "Edit Transaction" : "New Transaction"}
+          </h3>
           <form onSubmit={onSubmit} className="flex flex-col gap-4">
 
             {/* Amount field — positive numbers only */}
@@ -198,11 +285,23 @@ export default function Transactions() {
               </div>
             </div>
 
-            <input
-              type="submit"
-              value="Submit Transaction"
-              className="inline-flex items-center justify-center whitespace-nowrap text-md font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-slate-100 hover:text-accent-foreground h-9 rounded-md px-3 cursor-pointer mt-2"
-            />
+            <div className="flex gap-2 mt-2">
+              <input
+                type="submit"
+                value={editingId ? "Update Transaction" : "Submit Transaction"}
+                className="inline-flex items-center justify-center whitespace-nowrap text-md font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-slate-100 hover:text-accent-foreground h-9 rounded-md px-3 cursor-pointer"
+              />
+              {/* Cancel only appears in edit mode — it returns the form to "new" without saving. */}
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={cancelEdit}
+                  className="inline-flex items-center justify-center whitespace-nowrap text-md font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-slate-100 hover:text-accent-foreground h-9 rounded-md px-3 cursor-pointer"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
           </form>
         </div>
 

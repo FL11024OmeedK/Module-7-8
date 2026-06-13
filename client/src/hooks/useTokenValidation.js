@@ -1,10 +1,6 @@
-// useTokenValidation.js
-// Custom hook that checks the session_token cookie on every page mount.
-// If the token is missing or invalid, the user is redirected to /login.
-// If valid, returns the user object { first_name, last_name, id } for use in the UI.
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import useCookiePkg from "react-use-cookie";
 const useCookie = useCookiePkg.default ?? useCookiePkg;
 
@@ -15,7 +11,6 @@ export default function useTokenValidation() {
 
   useEffect(() => {
     async function validate() {
-      // No cookie at all — send to login immediately.
       if (!sessionToken) {
         navigate("/login");
         return;
@@ -30,7 +25,6 @@ export default function useTokenValidation() {
         if (!data.valid) {
           navigate("/login");
         } else {
-          // Store the user info so the calling component can use it (e.g. show first_name).
           setUser(data.user);
         }
       } catch {

@@ -50,7 +50,7 @@ export default function AgentForm() {
       const agent = await response.json();
       if (!agent) {
         console.warn(`Agent with id ${id} not found`);
-        navigate("/");
+        navigate("/agents");
         return;
       }
       // setForm updates React state, which causes the form inputs to re-render.
@@ -67,10 +67,29 @@ export default function AgentForm() {
     });
   }
 
+  // Checks every field against the type of data the server expects.
+  // Returns an error message for the first invalid field, or null if the form is valid.
+  function validateForm() {
+    if (!form.first_name.trim()) return "First name is required.";
+    if (!form.last_name.trim()) return "Last name is required.";
+    if (!/^\S+@\S+\.\S+$/.test(form.email)) return "Please enter a valid email address.";
+    if (!form.region) return "Please select a region.";
+    if (form.rating === "" || Number.isNaN(Number(form.rating)) || Number(form.rating) < 0 || Number(form.rating) > 100)
+      return "Rating must be a number between 0 and 100.";
+    if (form.fee === "" || Number.isNaN(Number(form.fee)) || Number(form.fee) < 0)
+      return "Fee must be a number of 0 or more.";
+    return null;
+  }
+
   // This function will handle the submission.
-  // onSubmit opens the confirmation modal; handleConfirm fires the actual fetch.
+  // onSubmit validates the form, then opens the confirmation modal; handleConfirm fires the actual fetch.
   function onSubmit(e) {
     e.preventDefault();
+    const error = validateForm();
+    if (error) {
+      showAlert(error, "danger");
+      return;
+    }
     setShowModal(true);
   }
 
@@ -112,14 +131,14 @@ export default function AgentForm() {
       showAlert(isNew ? "Failed to create agent." : "Failed to update agent.", "danger");
     } finally {
       setForm({ first_name: "", last_name: "", email: "", region: "", rating: "", fee: "" });
-      navigate("/");
+      navigate("/agents");
     }
   }
 
   // This following section will display the form that takes the input from the user.
   return (
     <>
-      <ConfirmationModal
+      <ConfirmationModal // Reusable modal component for confirming actions, imported from ConfirmationModal.jsx.
         show={showModal}
         message="Are you sure you want to continue?"
         onConfirm={handleConfirm}
